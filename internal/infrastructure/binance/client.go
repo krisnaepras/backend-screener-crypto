@@ -14,11 +14,16 @@ const (
 
 type Client struct {
 	httpClient *http.Client
+	baseURL    string
 }
 
-func NewClient() *Client {
+func NewClient(baseURL string) *Client {
+	if baseURL == "" {
+		baseURL = FapiBaseURL
+	}
 	return &Client{
 		httpClient: &http.Client{},
+		baseURL:    baseURL,
 	}
 }
 
@@ -44,7 +49,7 @@ type PremiumIndex struct {
 
 // GetActiveTradingSymbols returns symbols with status "TRADING" from Futures API.
 func (c *Client) GetActiveTradingSymbols() ([]string, error) {
-	resp, err := c.httpClient.Get(FapiBaseURL + "/fapi/v1/exchangeInfo")
+	resp, err := c.httpClient.Get(c.baseURL + "/fapi/v1/exchangeInfo")
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +75,7 @@ func (c *Client) GetActiveTradingSymbols() ([]string, error) {
 
 // GetFutures24hrTicker returns 24hr statistics for all markets.
 func (c *Client) GetFutures24hrTicker() ([]Ticker24h, error) {
-	resp, err := c.httpClient.Get(FapiBaseURL + "/fapi/v1/ticker/24hr")
+	resp, err := c.httpClient.Get(c.baseURL + "/fapi/v1/ticker/24hr")
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +97,7 @@ func (c *Client) GetFutures24hrTicker() ([]Ticker24h, error) {
 // Binance returns: [ [open_time, open, high, low, close, volume, ...], ... ]
 // All are nums or strings representing nums.
 func (c *Client) GetKlines(symbol, interval string, limit int) ([][]interface{}, error) {
-	url := fmt.Sprintf("%s/fapi/v1/klines?symbol=%s&interval=%s&limit=%d", FapiBaseURL, symbol, interval, limit)
+	url := fmt.Sprintf("%s/fapi/v1/klines?symbol=%s&interval=%s&limit=%d", c.baseURL, symbol, interval, limit)
 	resp, err := c.httpClient.Get(url)
 	if err != nil {
 		return nil, err
@@ -112,7 +117,7 @@ func (c *Client) GetKlines(symbol, interval string, limit int) ([][]interface{},
 
 // GetFundingRate returns the last funding rate for a symbol.
 func (c *Client) GetFundingRate(symbol string) (float64, error) {
-	url := fmt.Sprintf("%s/fapi/v1/premiumIndex?symbol=%s", FapiBaseURL, symbol)
+	url := fmt.Sprintf("%s/fapi/v1/premiumIndex?symbol=%s", c.baseURL, symbol)
 	resp, err := c.httpClient.Get(url)
 	if err != nil {
 		return 0, err

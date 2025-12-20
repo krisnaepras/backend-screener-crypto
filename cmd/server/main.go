@@ -1,13 +1,13 @@
 package main
 
 import (
-        "log"
-        "net/http"
-        "os"
+	"log"
+	"net/http"
+	"os"
 
-        "screener-backend/internal/delivery/websocket"
-        "screener-backend/internal/repository"
-        "screener-backend/internal/usecase"
+	"screener-backend/internal/delivery/websocket"
+	"screener-backend/internal/repository"
+	"screener-backend/internal/usecase"
 )
 
 func main() {
@@ -15,7 +15,8 @@ func main() {
         repo := repository.NewInMemoryScreenerRepository()
 
         // 2. Initialize Usecase
-        uc := usecase.NewScreenerUsecase(repo)
+        binanceBaseURL := os.Getenv("BINANCE_BASE_URL")
+        uc := usecase.NewScreenerUsecase(repo, binanceBaseURL)
 
         // 3. Start Screener Loop in background
         go uc.Run()

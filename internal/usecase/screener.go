@@ -16,10 +16,10 @@ type ScreenerUsecase struct {
 	binanceClient *binance.Client
 }
 
-func NewScreenerUsecase(repo domain.ScreenerRepository) *ScreenerUsecase {
+func NewScreenerUsecase(repo domain.ScreenerRepository, binanceBaseURL string) *ScreenerUsecase {
 	return &ScreenerUsecase{
 		repo:          repo,
-		binanceClient: binance.NewClient(),
+		binanceClient: binance.NewClient(binanceBaseURL),
 	}
 }
 
