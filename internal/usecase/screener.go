@@ -8,18 +8,27 @@ import (
 
 	"screener-backend/internal/domain"
 	"screener-backend/internal/infrastructure/binance"
+	"screener-backend/internal/infrastructure/fcm"
 	"screener-backend/internal/infrastructure/indicators"
+	"screener-backend/internal/repository"
 )
 
 type ScreenerUsecase struct {
 	repo          domain.ScreenerRepository
 	binanceClient *binance.Client
+	fcmClient     *fcm.Client
+	tokenRepo     *repository.TokenRepository
+	notifiedCoins map[string]time.Time // Track notified coins with timestamp
+	mu            sync.RWMutex
 }
 
-func NewScreenerUsecase(repo domain.ScreenerRepository, binanceBaseURL string) *ScreenerUsecase {
+func NewScreenerUsecase(repo domain.ScreenerRepository, tokenRepo *repository.TokenRepository, fcmClient *fcm.Client, binanceBaseURL string) *ScreenerUsecase {
 	return &ScreenerUsecase{
 		repo:          repo,
 		binanceClient: binance.NewClient(binanceBaseURL),
+		fcmClient:     fcmClient,
+		tokenRepo:     tokenRepo,
+		notifiedCoins: make(map[string]time.Time),
 	}
 }
 
@@ -164,10 +173,13 @@ func (uc *ScreenerUsecase) process() {
 				}
 				
 				// Determine Status based on Score
-				if scoreResult >= 75 {
+				if scoreResult >= 70 {
+					coin.Status = "TRIGGER"
+				} else if scoreResult >= 50 {
 					coin.Status = "SETUP"
+				} else {
+					coin.Status = "WATCH"
 				}
-				// Trigger logic is separate, just setup for now.
 
 				mu.Lock()
 				computedCoins = append(computedCoins, coin)
@@ -180,6 +192,10 @@ func (uc *ScreenerUsecase) process() {
 	wg.Wait()
 	
 	uc.repo.SaveCoins(computedCoins)
+	
+	// Send FCM notifications for TRIGGER coins
+	uc.sendNotificationsForTriggers(computedCoins)
+	
 	log.Printf("Cycle completed in %v. Processed %d coins.", time.Since(start), len(computedCoins))
 }
 
