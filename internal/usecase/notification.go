@@ -8,7 +8,7 @@ import (
 	"screener-backend/internal/domain"
 )
 
-// sendNotificationsForTriggers sends FCM notifications for coins with TRIGGER status
+// sendNotificationsForTriggers sends FCM notifications for coins with TRIGGER and SETUP status
 func (uc *ScreenerUsecase) sendNotificationsForTriggers(coins []domain.CoinData) {
 	if uc.fcmClient == nil || !uc.fcmClient.IsEnabled() {
 		return // FCM not configured
@@ -23,8 +23,8 @@ func (uc *ScreenerUsecase) sendNotificationsForTriggers(coins []domain.CoinData)
 	cooldownDuration := 5 * time.Minute
 
 	for _, coin := range coins {
-		// Only notify for TRIGGER status with high score
-		if coin.Status != "TRIGGER" || coin.Score < 70 {
+		// Notify for TRIGGER (score >= 70) and SETUP (score >= 50)
+		if coin.Status != "TRIGGER" && coin.Status != "SETUP" {
 			continue
 		}
 
@@ -37,11 +37,19 @@ func (uc *ScreenerUsecase) sendNotificationsForTriggers(coins []domain.CoinData)
 			continue // Skip, still in cooldown
 		}
 
-		// Prepare notification
+		// Prepare notification based on status
 		symbol := coin.Symbol
 		displaySymbol := symbol[:len(symbol)-4] // Remove "USDT"
 		
-		title := fmt.Sprintf("🚀 %s TRIGGER", displaySymbol)
+		var title, emoji string
+		if coin.Status == "TRIGGER" {
+			emoji = "🚀"
+			title = fmt.Sprintf("%s %s TRIGGER", emoji, displaySymbol)
+		} else { // SETUP
+			emoji = "⚡"
+			title = fmt.Sprintf("%s %s SETUP", emoji, displaySymbol)
+		}
+		
 		body := fmt.Sprintf("Score: %.0f | Price: $%.5f | Change: %.2f%%", 
 			coin.Score, coin.Price, coin.PriceChangePercent)
 
@@ -49,7 +57,8 @@ func (uc *ScreenerUsecase) sendNotificationsForTriggers(coins []domain.CoinData)
 			"symbol": coin.Symbol,
 			"score":  fmt.Sprintf("%.2f", coin.Score),
 			"price":  fmt.Sprintf("%.5f", coin.Price),
-			"type":   "trigger",
+			"status": coin.Status,
+			"type":   coin.Status, // "TRIGGER" or "SETUP"
 		}
 
 		// Send to all registered tokens
