@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"log"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -191,6 +192,11 @@ func (uc *ScreenerUsecase) process() {
 	}
 
 	wg.Wait()
+	
+	// Sort coins by score (highest first)
+	sort.Slice(computedCoins, func(i, j int) bool {
+		return computedCoins[i].Score > computedCoins[j].Score
+	})
 	
 	uc.repo.SaveCoins(computedCoins)
 	
