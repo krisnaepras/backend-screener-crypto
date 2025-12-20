@@ -38,6 +38,7 @@ func main() {
 	// 5. Initialize HTTP Handlers
 	wsHandler := websocket.NewHandler(repo)
 	tokenHandler := httphandler.NewTokenHandler(tokenRepo)
+	testHandler := httphandler.NewTestHandler(fcmClient, tokenRepo)
 
 	// Routes
 	http.HandleFunc("/ws", wsHandler.Handle)
@@ -50,6 +51,9 @@ func main() {
 	http.HandleFunc("/api/register-token", tokenHandler.HandleRegisterToken)
 	http.HandleFunc("/api/unregister-token", tokenHandler.HandleUnregisterToken)
 	http.HandleFunc("/api/token-count", tokenHandler.HandleGetTokenCount)
+	
+	// Test notification endpoint
+	http.HandleFunc("/api/test-notification", testHandler.SendTestNotification)
 
 	// Get port from environment variable (Heroku sets this)
 	port := os.Getenv("PORT")
