@@ -166,20 +166,21 @@ func (uc *ScreenerUsecase) process() {
 					Symbol:             symbol,
 					Price:              prices[len(prices)-1],
 					Score:              scoreResult,
-					Status:             "AVOID", // Logic for Status needed
+					Status:             "AVOID",
 					PriceChangePercent: features.PctChange24h,
 					FundingRate:        funding,
 					Features:           features,
 				}
 				
-				// Determine Status based on Score
+				// Determine Status based on Score (4 levels)
 				if scoreResult >= 70 {
 					coin.Status = "TRIGGER"
 				} else if scoreResult >= 50 {
 					coin.Status = "SETUP"
-				} else {
+				} else if scoreResult >= 20 {
 					coin.Status = "WATCH"
 				}
+				// else remains AVOID (score < 20)
 
 				mu.Lock()
 				computedCoins = append(computedCoins, coin)
