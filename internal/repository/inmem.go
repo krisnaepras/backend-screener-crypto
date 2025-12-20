@@ -2,6 +2,7 @@ package repository
 
 import (
 	"screener-backend/internal/domain"
+	"sort"
 	"sync"
 )
 
@@ -30,5 +31,11 @@ func (r *InMemoryScreenerRepository) GetCoins() []domain.CoinData {
 	// For this use case, we serialize to JSON immediately usually, so shallow copy of slice is enough).
 	result := make([]domain.CoinData, len(r.coins))
 	copy(result, r.coins)
+	
+	// Ensure sorted by score descending
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Score > result[j].Score
+	})
+	
 	return result
 }
