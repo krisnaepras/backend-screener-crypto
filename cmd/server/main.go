@@ -16,6 +16,7 @@ func main() {
 	// 1. Initialize Repositories
 	repo := repository.NewInMemoryScreenerRepository()
 	tokenRepo := repository.NewTokenRepository()
+	tradeRepo := repository.NewInMemoryTradeRepository()
 
 	// 2. Initialize FCM Client
 	fcmClient, err := fcm.NewClient()
@@ -39,6 +40,7 @@ func main() {
 	wsHandler := websocket.NewHandler(repo)
 	tokenHandler := httphandler.NewTokenHandler(tokenRepo)
 	testHandler := httphandler.NewTestHandler(fcmClient, tokenRepo)
+	tradeHandler := httphandler.NewTradeHandler(tradeRepo)
 
 	// Routes
 	http.HandleFunc("/ws", wsHandler.Handle)
@@ -54,6 +56,23 @@ func main() {
 	
 	// Test notification endpoint
 	http.HandleFunc("/api/test-notification", testHandler.SendTestNotification)
+
+	// Trade management endpoints
+	http.HandleFunc("/api/trades", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			tradeHandler.CreateEntry(w, r)
+		} else if r.Method == http.MethodGet {
+			if r.URL.Query().Get("status") == "active" {
+				tradeHandler.GetActiveEntries(w, r)
+			} else {
+				tradeHandler.GetHistory(w, r)
+			}
+		}
+	})
+	http.HandleFunc("/api/trades/active", tradeHandler.GetActiveEntries)
+	http.HandleFunc("/api/trades/history", tradeHandler.GetHistory)
+	http.HandleFunc("/api/trades/update", tradeHandler.UpdateEntry)
+	http.HandleFunc("/api/trades/delete", tradeHandler.DeleteEntry)
 
 	// Get port from environment variable (Heroku sets this)
 	port := os.Getenv("PORT")
