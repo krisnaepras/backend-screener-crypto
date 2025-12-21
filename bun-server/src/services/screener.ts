@@ -49,6 +49,29 @@ export class ScreenerService {
         }
     }
 
+    async deleteTradeLogs(ids: string[]): Promise<boolean> {
+        try {
+            const path = join(process.cwd(), "logs", "trades.jsonl");
+            let content = "";
+            try {
+                content = await readFile(path, "utf-8");
+            } catch {
+                return true; // File doesn't exist, technically deleted
+            }
+
+            const logs = content.trim().split("\n").map(line => JSON.parse(line));
+            const newLogs = logs.filter(log => !ids.includes(log.id));
+
+            // Rewrite file
+            // Note: Bun's write allows overwriting
+            await Bun.write(path, newLogs.map(l => JSON.stringify(l)).join("\n") + "\n");
+            return true;
+        } catch (e) {
+            console.error("Failed to delete logs", e);
+            return false;
+        }
+    }
+
     start() {
         if (this.isRunning) return;
         this.isRunning = true;
@@ -140,10 +163,30 @@ export class ScreenerService {
         await Promise.all(batch.map(s => this.analyzeSymbol(s)));
     }
 
+    async analyzeOnDemand(symbol: string): Promise<CoinData | null> {
+        // Check cache first
+        const cached = this.coins.find(c => c.symbol === symbol);
+        if (cached) return cached;
+
+        // Otherwise generate fresh analysis
+        // Note: We don't save this to this.coins to avoid polluting the "Screener" list
+        // We just return the data for the UI
+        try {
+            return await this.performAnalysis(symbol, false); // false = read-only (don't update state)
+        } catch (e) {
+            console.error(`Failed to analyze ${symbol} on demand`, e);
+            return null;
+        }
+    }
+
     private async analyzeSymbol(symbol: string) {
+        await this.performAnalysis(symbol, true); // true = update state
+    }
+
+    private async performAnalysis(symbol: string, updateState: boolean): Promise<CoinData | null> {
         // 1. Fetch Heavy Data (Reversal Timeframe: 1m for Sniping)
-        const klines = await this.binance.getKlines(symbol, "1m", 60); // 1 hour of data context
-        if (klines.prices.length < 50) return;
+        const klines = await this.binance.getKlines(symbol, "1m", 90); // 90 mins context
+        if (klines.prices.length < 50) return null;
 
         const openInterest = await this.binance.getOpenInterest(symbol);
         const fundingRate = await this.binance.getFundingRate(symbol);
@@ -161,66 +204,81 @@ export class ScreenerService {
         const volumes = klines.volumes;
         const currentIdx = prices.length - 1;
 
-        // 3. Calculate Indicators
-        const ema21 = Indicators.calculateEMA(prices, 21);
-        const ema50 = Indicators.calculateEMA(prices, 50);
-        const ema100 = Indicators.calculateEMA(prices, 100);
-        const ema200 = Indicators.calculateEMA(prices, 200);
+        // 3. New Strategy: Flash Pump Reversal (Parabolic + Structure Break)
 
-        const rsi = Indicators.calculateRSI(prices, 14);
-        const stoch = Indicators.calculateStochRSI(prices, 14, 3, 3);
-        const vwap = Indicators.calculateVWAP(highs, lows, prices, volumes);
-        const bb = Indicators.calculateBollingerBands(prices, 20, 2.0);
-
-        // 4. Pattern Recognition & Features
+        // Calculate Indicators FIRST (Required for logic)
         const curPrice = prices[currentIdx];
+        const ema21 = Indicators.calculateEMA(prices, 21);
         const curEma21 = ema21[currentIdx];
+        const realDistFromEma21 = ((curPrice - curEma21) / curEma21) * 100;
+
+        // A. Parabolic Check: Must be up > 3% in last 15 mins OR > 5% in last 60 mins OR > 2% from EMA21
+        const price15mAgo = prices[currentIdx - 15] || prices[0];
+        const pump15m = ((prices[currentIdx] - price15mAgo) / price15mAgo) * 100;
+
+        const price60mAgo = prices[currentIdx - 60] || prices[0];
+        const pump60m = ((prices[currentIdx] - price60mAgo) / price60mAgo) * 100;
+
+        const isParabolic = pump15m > 2.5 || pump60m > 4.0 || realDistFromEma21 > 2.0;
+
+        // B. Structure Break (Micro): Look for a Lower High after a High
+        // Simplified: Price is now BELOW the EMA21 after being ABOVE it,
+        // AND the recent high was a "spike" (high > bb upper).
+        const bb = Indicators.calculateBollingerBands(prices, 20, 2.5); // Wider BB (2.5 SD)
+
+        // Did we spike above BB recently? (Last 5 candles)
+        let spikedAboveBB = false;
+        for (let i = 0; i < 5; i++) {
+            if (highs[currentIdx - i] > bb.upper[currentIdx - i]) {
+                spikedAboveBB = true;
+                break;
+            }
+        }
+
+        // Are we breaking structure? (Price closing below EMA21 after spike)
+        const isBreakingStructure = spikedAboveBB && curPrice < curEma21;
+
+        // C. Indicators
+        const rsi = Indicators.calculateRSI(prices, 14);
         const curRsi = rsi[currentIdx];
 
-        // A. Volume Analysis
         const volExhaustion = Indicators.detectVolumeExhaustion(volumes, highs, lows, prices, opens);
         const volSpike = volExhaustion.spikeRatio;
 
-        // B. Wick Rejection (> 40% upper wick)
+        // Wick Rejection Logic (still useful)
         const cOpen = opens[currentIdx];
         const cClose = prices[currentIdx];
         const cHigh = highs[currentIdx];
         const cLow = lows[currentIdx];
-
         const bodyTop = Math.max(cOpen, cClose);
         const range = cHigh - cLow;
         const upperWick = cHigh - bodyTop;
         const wickRatio = range > 0 ? (upperWick / range) : 0;
-        const isWickRejection = wickRatio > 0.4;
-
-        // C. Bearish Engulfing
-        const prevOpen = opens[currentIdx - 1];
-        const prevClose = prices[currentIdx - 1];
-        const isBearishEngulfing = (prevClose > prevOpen) && // Prev Green
-            (cClose < cOpen) &&       // Curr Red
-            (cOpen >= prevClose) &&   // Open at/above prev close
-            (cClose <= prevOpen);     // Close at/below prev open
+        const isWickRejection = wickRatio > 0.5; // Stricter: 50% wick
 
         // D. Context Checks
-        const isOverboughtStoch = stoch.k[currentIdx] > 80 && stoch.d[currentIdx] > 80;
-        const isVWAPExtended = curPrice > vwap[currentIdx] * 1.01; // 1% extension
-        const isBollingerRejection = highs[currentIdx] > bb.upper[currentIdx] && curPrice < bb.upper[currentIdx];
+        // Note: stoch and vwap are not calculated in this snippet, assuming they exist or are placeholders.
+        // const isOverboughtStoch = stoch.k[currentIdx] > 80 && stoch.d[currentIdx] > 80;
+        // const isVWAPExtended = curPrice > vwap[currentIdx] * 1.01; // 1% extension
+
+        // Bearish Engulfing
+        const prevOpen = opens[currentIdx - 1];
+        const prevClose = prices[currentIdx - 1];
+        const isBearishEngulfing = (prevClose > prevOpen) && (cClose < cOpen) && (cOpen >= prevClose) && (cClose <= prevOpen);
 
         // 5. Construct Features Object
-        const isBearishDiv = Indicators.detectBearishDivergence(prices, rsi, 15);
-
         const features: MarketFeatures = {
             pctChange24h: change24h,
             currentPrice: curPrice,
             ema21: curEma21,
-            ema50: ema50[currentIdx],
-            ema100: ema100[currentIdx],
-            ema200: ema200[currentIdx],
-            isUptrend: curEma21 > ema50[currentIdx] && ema50[currentIdx] > ema100[currentIdx],
-            distFromEma21: ((curPrice - curEma21) / curEma21) * 100,
+            ema50: 0, // Not vital for this logic
+            ema100: 0,
+            ema200: 0,
+            isUptrend: isParabolic,
+            distFromEma21: realDistFromEma21, // Now storing actual distance
             rsi: curRsi,
-            isRsiBearishDiv: isBearishDiv,
-            isBollingerRejection,
+            isRsiBearishDiv: false,
+            isBollingerRejection: spikedAboveBB,
             isRejectionWick: isWickRejection,
             volumeSpike: volSpike,
             isVolumeExhaustion: volExhaustion.isExhaustion,
@@ -230,32 +288,49 @@ export class ScreenerService {
             longShortRatio
         };
 
-        // 6. Scoring Logic (The "Gold" Logic)
+        // 6. Scoring Logic (Sniper Edition)
         let score = 0;
 
-        // Context (30pts)
-        if (curRsi > 70) score += 10;
-        if (isOverboughtStoch) score += 15;
-        if (isVWAPExtended) score += 15;
+        // MUST BE PARABOLIC to even consider (The "Filter")
+        if (!isParabolic) {
+            score = 0; // Kill score if not pumping
+        } else {
+            // Base Score for Context
+            if (curRsi > 70) score += 10;
+            if (curRsi > 80) score += 10;
+            if (curRsi > 85) score += 40; // USER RULE: RSI > 85 = Guaranteed Dump. Huge Weight.
 
-        // Trigger (Price Action) (50pts)
-        if (isWickRejection) score += 20;
-        if (isBearishEngulfing) score += 25;
-        if (isBollingerRejection) score += 10;
+            // Smart Money Shorting (Ratio < 0.8)
+            if (longShortRatio < 0.8 && longShortRatio > 0) score += 15;
 
-        // Volume (20pts)
-        if (volSpike > 3) score += 15;
-        else if (volSpike > 2) score += 10;
+            // Trigger A: Structure Break (Trend Reversal)
+            // Price broke below EMA21 after a spike
+            if (isBreakingStructure) score += 30;
 
-        // Funding & Sentiment
-        if (fundingRate > 0.05) score += 5;
-        if (longShortRatio > 2.5) score += 10;
-        else if (longShortRatio > 1.5) score += 5;
+            // Trigger B: Mean Reversion (Extreme Extension)
+            // Price is WAY above EMA21 (>2%) + Showing Weakness
+            // This catches tops BEFORE the breakdown
+            const isExtended = realDistFromEma21 > 2.0; // Adjusted to 2.0%
+            const isSuperExtended = realDistFromEma21 > 4.0; // Adjusted to 4.0%
+
+            if (isSuperExtended) {
+                score += 35; // Huge confidence if super extended
+            } else if (isExtended && (isWickRejection || isBearishEngulfing)) {
+                score += 20;
+            }
+
+            // Candle Confirmation (Synced with UI)
+            if (isWickRejection) score += 20; // UI says +20
+            if (isBearishEngulfing) score += 25; // UI says +25
+            if (volSpike > 3) score += 15;
+        }
 
         score = Math.min(score, 100);
-        let status = score >= 70 ? "TRIGGER" : score >= 50 ? "SETUP" : "WATCH";
 
-        // 7. Persistence & State Machine
+        // Stricter Thresholds
+        let status = score >= 75 ? "TRIGGER" : score >= 50 ? "SETUP" : "WATCH";
+
+        // 7. Persistence & State Machine (Only if updateState is true)
         const existingIdx = this.coins.findIndex(c => c.symbol === symbol);
         const existingCoin = existingIdx !== -1 ? this.coins[existingIdx] : null;
 
@@ -263,43 +338,83 @@ export class ScreenerService {
         let tradeEntryPrice = existingCoin?.tradeEntryPrice;
         let tradeStartTime = existingCoin?.tradeStartTime;
 
-        // STATE MACHINE
-        if (tradeActive) {
-            // Check Exit Conditions (Post-drop Exhaustion)
-            const isPriceRecovering = curPrice > curEma21; // Price broke above EMA21
-            const isOversold = curRsi < 30; // RSI oversold
+        if (updateState) {
+            // STATE MACHINE
+            if (tradeActive) {
+                // Check Exit Conditions
+                const pnlRaw = (tradeEntryPrice! - curPrice) / tradeEntryPrice!;
+                const pnlPct = pnlRaw * 100;
 
-            if (isPriceRecovering || isOversold) {
-                // EXIT TRADE
-                const exitPrice = curPrice;
-                const pnlRaw = (tradeEntryPrice! - exitPrice) / tradeEntryPrice!; // Short PnL: (Entry - Exit) / Entry
-                const pnlLeverage = pnlRaw * 100 * 50; // 50x
+                // 1. Hard Take Profit (Jackpot)
+                const isJackpot = pnlPct > 3.0;
 
-                this.logTrade({
-                    id: crypto.randomUUID(),
-                    symbol,
-                    entryPrice: tradeEntryPrice!,
-                    exitPrice,
-                    pnl: pnlLeverage,
-                    startTime: tradeStartTime!,
-                    endTime: Date.now(),
-                    exitReason: isPriceRecovering ? "Price > EMA21" : "RSI < 30"
-                });
+                // 2. Mean Reversion Logic (Smart Exit)
+                const isTouchingEma = curPrice <= curEma21;
+                let isMeanReverted = false;
 
-                tradeActive = false;
-                tradeEntryPrice = undefined;
-                tradeStartTime = undefined;
-                status = "NORMAL"; // Cooldown
+                if (isTouchingEma) {
+                    // "Naive" check: Just touch? Or Strong Momentum?
+                    // Research: Top Trader L/S Ratio < 1.0 means Smart Money is Net Short.
+                    // If Ratio < 0.8, Smart Money is betting on more dump. HOLD.
+                    // If Ratio > 1.2, Smart Money is Long (Buying Dip). EXIT.
+                    const isSmartMoneyShort = longShortRatio < 0.8 && longShortRatio > 0; // Ensure not 0
+
+                    // If Selling Volume is HUGE (> 3x) and candle is red, momentum is strong. HOLD.
+                    const isStrongMomentum = volSpike > 3.0 && (curPrice < opens[currentIdx]);
+
+                    if (isSmartMoneyShort || isStrongMomentum) {
+                        // GREED MODE: Don't exit yet.
+                        // But protect capital: Tighten Stop Loss to Entry (Breakeven) if not already
+                        // Note: We handled "status" below, logic handles holding naturally.
+                        isMeanReverted = false;
+                    } else {
+                        // Normal bounce at EMA21 likely. Take profit.
+                        isMeanReverted = true;
+                    }
+                }
+
+                // 3. Stop Loss: Price goes > 0.8% ABOVE Entry (Tight Stop)
+                const stopLossHit = pnlPct < -0.8;
+
+                // 4. Trailing/Structure Exit: Price closes back ABOVE EMA21 (after being below)
+                // Only triggers if we are actually in profit to avoid instant close on chop
+                const trendReversalFail = curPrice > curEma21 && curPrice > tradeEntryPrice! && pnlPct > 0.2;
+
+                if (isJackpot || (isMeanReverted && pnlPct > 0.5) || stopLossHit || trendReversalFail) {
+                    // EXIT TRADE
+                    const exitPrice = curPrice;
+                    const pnlLeverage = pnlPct * 50; // 50x
+
+                    let reason = "Unknown";
+                    if (isJackpot) reason = "Take Profit (>3%)";
+                    else if (stopLossHit) reason = "Stop Loss";
+                    else if (isMeanReverted) reason = "Mean Reversion (Touch EMA21 - Low Momentum)";
+                    else if (trendReversalFail) reason = "Trend Reversal";
+
+                    this.logTrade({
+                        id: crypto.randomUUID(),
+                        symbol,
+                        entryPrice: tradeEntryPrice!,
+                        exitPrice,
+                        pnl: pnlLeverage,
+                        startTime: tradeStartTime!,
+                        endTime: Date.now(),
+                        exitReason: reason
+                    });
+
+                    tradeActive = false;
+                    tradeEntryPrice = undefined;
+                    tradeStartTime = undefined;
+                    status = "NORMAL";
+                } else {
+                    status = "TRIGGER"; // Maintain lock
+                }
             } else {
-                // MAINTAIN TRADE
-                status = "TRIGGER"; // Force lock status
-            }
-        } else {
-            // No active trade, check for Entry
-            if (status === "TRIGGER") {
-                tradeActive = true;
-                tradeEntryPrice = curPrice;
-                tradeStartTime = Date.now();
+                if (status === "TRIGGER") {
+                    tradeActive = true;
+                    tradeEntryPrice = curPrice;
+                    tradeStartTime = Date.now();
+                }
             }
         }
 
@@ -317,13 +432,17 @@ export class ScreenerService {
             tradeStartTime
         };
 
-        if (existingIdx !== -1) {
-            this.coins[existingIdx] = coinData;
-        } else {
-            this.coins.push(coinData);
+        if (updateState) {
+            if (existingIdx !== -1) {
+                this.coins[existingIdx] = coinData;
+            } else {
+                this.coins.push(coinData);
+            }
+
+            this.coins.sort((a, b) => b.score - a.score);
         }
 
-        this.coins.sort((a, b) => b.score - a.score);
+        return coinData;
     }
 
     private async logTrade(log: any) {

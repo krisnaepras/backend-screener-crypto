@@ -109,7 +109,7 @@ export class BinanceService {
     async getTopLongShortAccountRatio(symbol: string): Promise<number> {
         try {
             // Get last 5 mins ratio
-            const res = await this.fetchWithTimeout(`${this.baseUrl}/fapi/v1/topLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`);
+            const res = await this.fetchWithTimeout(`${this.baseUrl}/futures/data/topLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`);
             const data = await res.json() as any[];
             if (data && data.length > 0) {
                 return parseFloat(data[0].longShortRatio);

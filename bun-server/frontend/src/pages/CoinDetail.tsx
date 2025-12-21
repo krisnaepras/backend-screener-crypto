@@ -287,6 +287,11 @@ export function CoinDetail() {
                 </div>
             </div>
 
+            {/* Scorecard Analysis */}
+            {!loading && !error && (
+                <Scorecard symbol={symbol || ""} />
+            )}
+
             {/* Stats Grid - Only show if data is loaded */}
             {!loading && !error && stats && (
                 <div className="grid grid-cols-3 gap-6">
@@ -307,3 +312,59 @@ export function CoinDetail() {
         </div>
     );
 }
+
+function Scorecard({ symbol }: { symbol: string }) {
+    const [coin, setCoin] = useState<any>(null);
+
+    useEffect(() => {
+        // Fetch coin analysis from backend
+        fetch(`/api/coin/${symbol}`)
+            .then(res => res.json())
+            .then(data => setCoin(data))
+            .catch(e => console.error("Failed to fetch coin analysis", e));
+    }, [symbol]);
+
+    if (!coin || !coin.features) return null;
+
+    const f = coin.features;
+    const s = coin.score;
+
+    return (
+        <div className="bg-surface rounded-2xl p-6 shadow-card">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center justify-between">
+                <span>Signal Analysis</span>
+                <span className={clsx("px-3 py-1 rounded-lg text-sm", s >= 70 ? "bg-danger text-white" : "bg-warning text-white")}>
+                    Score: {s}/100
+                </span>
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Context */}
+                <ReasonCard label="RSI (14)" value={f.rsi?.toFixed(1)} points={f.rsi > 70 ? "+10" : "0"} triggered={f.rsi > 70} />
+                <ReasonCard label="Stoch RSI" value={f.rsi > 80 ? "Overbought" : "Normal"} points={f.rsi > 80 ? "+15" : "0"} triggered={f.rsi > 80} />
+                <ReasonCard label="L/S Ratio" value={f.longShortRatio?.toFixed(2)} points={f.longShortRatio < 0.8 && f.longShortRatio > 0 ? "+15" : "0"} triggered={f.longShortRatio < 0.8 && f.longShortRatio > 0} />
+
+                {/* Price Action */}
+                <ReasonCard label="Wick Rejection" value={f.isRejectionWick ? "YES" : "NO"} points={f.isRejectionWick ? "+20" : "0"} triggered={f.isRejectionWick} />
+                <ReasonCard label="Bearish Engulfing" value={f.isBearishEngulfing ? "YES" : "NO"} points={f.isBearishEngulfing ? "+25" : "0"} triggered={f.isBearishEngulfing} />
+                <ReasonCard label="Volume Spike" value={`${f.volumeSpike?.toFixed(1)}x`} points={f.volumeSpike > 2 ? "+10" : "0"} triggered={f.volumeSpike > 2} />
+            </div>
+        </div>
+    );
+}
+
+const ReasonCard = ({ label, value, points, triggered }: any) => (
+    <div className={clsx("p-4 rounded-xl border flex justify-between items-center",
+        triggered ? "bg-danger/10 border-danger/30" : "bg-background/50 border-white/5"
+    )}>
+        <div>
+            <p className="text-xs text-text-secondary uppercase font-semibold">{label}</p>
+            <p className={clsx("text-lg font-bold", triggered ? "text-white" : "text-text-muted")}>{value}</p>
+        </div>
+        {triggered && (
+            <span className="text-danger font-bold text-sm bg-danger/10 px-2 py-1 rounded">
+                {points}
+            </span>
+        )}
+    </div>
+);

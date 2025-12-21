@@ -3,7 +3,7 @@ import { spawn } from "bun";
 console.log("🚀 Starting Crypto Watchtower (Full Stack)...");
 
 // 1. Start Backend
-const backend = spawn([process.execPath, "run", "src/index.ts"], {
+const backend = spawn([process.execPath, "--watch", "src/index.ts"], {
     stdout: "inherit",
     stderr: "inherit",
     env: { ...process.env, PORT: "8181" }

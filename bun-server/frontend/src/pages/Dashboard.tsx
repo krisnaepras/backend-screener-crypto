@@ -4,6 +4,7 @@ import { CoinCard } from "../components/CoinCard";
 import { Header } from "../components/Header";
 import { ArrowUp, ArrowDown, Activity } from "lucide-react";
 import clsx from "clsx";
+import { Link } from "react-router-dom";
 
 export function Dashboard() {
     const [coins, setCoins] = useState<CoinData[]>([]);
@@ -150,7 +151,9 @@ export function Dashboard() {
                                     </td>
                                     <td className="py-4 px-4 text-text-muted">{(coin.fundingRate * 100).toFixed(4)}%</td>
                                     <td className="py-4 px-4 text-right">
-                                        <button className="text-primary hover:text-white text-xs font-semibold">Trade</button>
+                                        <td className="py-4 px-4 text-right">
+                                            <Link to={`/coin/${coin.symbol}`} className="text-primary hover:text-white text-xs font-semibold">Details</Link>
+                                        </td>
                                     </td>
                                 </tr>
                             ))}

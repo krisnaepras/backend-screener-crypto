@@ -1,4 +1,4 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { staticPlugin } from "@elysiajs/static";
 import { ScreenerService } from "./services/screener";
@@ -51,10 +51,23 @@ const app = new Elysia()
         prefix: "/"
     }))
     .get("/", () => Bun.file("public/index.html")) // Fallback for SPA
-    .get("/api/logs", async () => {
-        return await screener.getTradeLogs();
+    .delete("/api/logs", async ({ body }) => {
+        const success = await screener.deleteTradeLogs(body.ids);
+        return { success, deleted: success ? body.ids.length : 0 };
+    }, {
+        body: t.Object({
+            ids: t.Array(t.String())
+        }),
+        detail: {
+            summary: "Delete Logs",
+            description: "Deletes logs by their IDs."
+        }
     })
-    .get("/swagger", () => ({ status: "OK" })) // Temp swagger placeholder
+    .get("/api/coin/:symbol", async ({ params: { symbol } }) => {
+        const s = symbol.toUpperCase();
+        const data = await screener.analyzeOnDemand(s);
+        return data || { error: "Analysis failed or data insufficient" };
+    })
     .listen(8181);
 
 console.log(`🦊 Server running at http://localhost:8181`);
