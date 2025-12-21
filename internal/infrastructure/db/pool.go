@@ -2,8 +2,8 @@ package db
 
 import (
 	"context"
+	"net"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -27,48 +27,6 @@ func DefaultPoolConfig() PoolConfig {
 		MaxConnIdleTime:   5 * time.Minute,
 		HealthCheckPeriod: 30 * time.Second,
 	}
-}
-
-func PoolConfigFromEnv() PoolConfig {
-	cfg := DefaultPoolConfig()
-
-	if v := strings.TrimSpace(os.Getenv("DB_MAX_CONNS")); v != "" {
-		if n, err := strconv.ParseInt(v, 10, 32); err == nil {
-			cfg.MaxConns = int32(n)
-		}
-	}
-	if v := strings.TrimSpace(os.Getenv("DB_MIN_CONNS")); v != "" {
-		if n, err := strconv.ParseInt(v, 10, 32); err == nil {
-			cfg.MinConns = int32(n)
-		}
-	}
-	if v := strings.TrimSpace(os.Getenv("DB_MAX_CONN_LIFETIME")); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
-			cfg.MaxConnLifetime = d
-		}
-	}
-	if v := strings.TrimSpace(os.Getenv("DB_MAX_CONN_IDLE_TIME")); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
-			cfg.MaxConnIdleTime = d
-		}
-	}
-	if v := strings.TrimSpace(os.Getenv("DB_HEALTHCHECK_PERIOD")); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
-			cfg.HealthCheckPeriod = d
-		}
-	}
-
-	if cfg.MaxConns < 1 {
-		cfg.MaxConns = 1
-	}
-	if cfg.MinConns < 0 {
-		cfg.MinConns = 0
-	}
-	if cfg.MinConns > cfg.MaxConns {
-		cfg.MinConns = cfg.MaxConns
-	}
-
-	return cfg
 }
 
 func ensureSSLModeRequire(dbURL string) string {
@@ -95,6 +53,45 @@ func NewPool(ctx context.Context, databaseURL string, cfg PoolConfig) (*pgxpool.
 	poolCfg, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
 		return nil, err
+	}
+
+	// Heroku dynos commonly don't have IPv6 connectivity. Supabase may resolve to IPv6.
+	// Prefer IPv4 to avoid: dial tcp [ipv6]: connect: network is unreachable.
+	poolCfg.ConnConfig.DialFunc = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host, portStr, splitErr := net.SplitHostPort(addr)
+		if splitErr != nil {
+			// Best-effort fallback.
+			return (&net.Dialer{}).DialContext(ctx, network, addr)
+		}
+
+		port, err := strconv.Atoi(portStr)
+		if err != nil {
+			return (&net.Dialer{}).DialContext(ctx, network, addr)
+		}
+
+		ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+		if err != nil {
+			return (&net.Dialer{}).DialContext(ctx, network, addr)
+		}
+
+		var lastErr error
+		for _, ip := range ips {
+			if ip.IP == nil || ip.IP.To4() == nil {
+				continue
+			}
+			candidate := net.JoinHostPort(ip.IP.String(), strconv.Itoa(port))
+			conn, err := (&net.Dialer{}).DialContext(ctx, network, candidate)
+			if err == nil {
+				return conn, nil
+			}
+			lastErr = err
+		}
+
+		if lastErr != nil {
+			return nil, lastErr
+		}
+		// No IPv4 addresses found; fall back to default.
+		return (&net.Dialer{}).DialContext(ctx, network, addr)
 	}
 
 	poolCfg.MaxConns = cfg.MaxConns

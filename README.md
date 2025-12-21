@@ -71,6 +71,32 @@ screener-backend/
 
 ## Build & Run
 
+## Configuration (Recommended)
+
+### Required for Production (Postgres + encrypted secrets)
+
+- `DATABASE_URL`: Postgres connection string (e.g. Supabase)
+- `API_ENCRYPTION_KEY`: at least 32 characters (used to encrypt Binance `secretKey` at rest)
+
+If `DATABASE_URL` is set but `API_ENCRYPTION_KEY` is missing/too short, the server will refuse to start.
+
+### Heroku
+
+- Set Postgres URL:
+  - `heroku config:set DATABASE_URL="<your-postgres-url>" --app <app-name>`
+- Set encryption key (generate a strong random key):
+  - `heroku config:set API_ENCRYPTION_KEY="$(openssl rand -base64 32)" --app <app-name>`
+
+### Local
+
+- `export DATABASE_URL="<your-postgres-url>"`
+- `export API_ENCRYPTION_KEY="$(openssl rand -base64 32)"`
+
+When `DATABASE_URL` is set, the backend will:
+- connect using a pooled connection (`pgxpool`)
+- auto-create required tables on startup
+- persist autoscalp entries + Binance credentials/config
+
 ### Prerequisites
 - Go 1.21 or higher
 - Internet connection (untuk Binance API)

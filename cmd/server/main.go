@@ -26,15 +26,24 @@ func main() {
 	
 	// Initialize Binance API Repository with encryption key
 	encryptionKey := os.Getenv("API_ENCRYPTION_KEY")
-	if encryptionKey == "" {
-		encryptionKey = "default-key-change-in-production-32bytes"
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL != "" {
+		// Production safety: do not allow weak/empty encryption key when persisting secrets.
+		if len(encryptionKey) < 32 {
+			log.Fatal("API_ENCRYPTION_KEY is required and must be at least 32 characters when DATABASE_URL is set")
+		}
+	} else {
+		// Dev fallback only (in-memory storage).
+		if encryptionKey == "" {
+			encryptionKey = "dev-only-default-key-change-in-production"
+		}
 	}
 
 	var autoScalpRepo domain.AutoScalpRepository
 	var binanceAPIRepo domain.BinanceAPIStore
 
-	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
-		pool, err := db.NewPool(ctx, dbURL, db.PoolConfigFromEnv())
+	if dbURL != "" {
+		pool, err := db.NewPool(ctx, dbURL, db.DefaultPoolConfig())
 		if err != nil {
 			log.Fatalf("Failed to create DB pool: %v", err)
 		}
