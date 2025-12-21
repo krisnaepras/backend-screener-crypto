@@ -27,9 +27,15 @@ func (h *TradeHandler) CreateEntry(w http.ResponseWriter, r *http.Request) {
 
 	var entry domain.TradeEntry
 	if err := json.NewDecoder(r.Body).Decode(&entry); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		// Log the exact error for debugging
+		fmt.Printf("Error decoding request body: %v\n", err)
+		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
 		return
 	}
+	
+	// Log received entry for debugging
+	fmt.Printf("Received entry: Symbol=%s, IsLong=%v, EntryPrice=%f, Status=%s\n", 
+		entry.Symbol, entry.IsLong, entry.EntryPrice, entry.Status)
 
 	// Set default values
 	if entry.ID == "" {
