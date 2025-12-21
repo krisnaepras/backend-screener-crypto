@@ -72,6 +72,31 @@ export const Indicators = {
         return rsi;
     },
 
+    calculateATR(highs: number[], lows: number[], closes: number[], period: number): number[] {
+        const length = closes.length;
+        const atr = new Array(length).fill(0);
+        if (length < period + 1) return atr;
+
+        const trs = new Array(length).fill(0);
+        trs[0] = highs[0] - lows[0];
+
+        for (let i = 1; i < length; i++) {
+            const hl = highs[i] - lows[i];
+            const hc = Math.abs(highs[i] - closes[i - 1]);
+            const lc = Math.abs(lows[i] - closes[i - 1]);
+            trs[i] = Math.max(hl, hc, lc);
+        }
+
+        let sumTR = 0;
+        for (let i = 0; i < period; i++) sumTR += trs[i];
+        atr[period - 1] = sumTR / period;
+
+        for (let i = period; i < length; i++) {
+            atr[i] = (atr[i - 1] * (period - 1) + trs[i]) / period;
+        }
+        return atr;
+    },
+
     calculateBollingerBands(closes: number[], period: number, multiplier: number): BollingerBands {
         const length = closes.length;
         const res = {
@@ -101,85 +126,26 @@ export const Indicators = {
         return res;
     },
 
-    // --- NEW ADVANCED LOGIC ---
+    findPivotLows(lows: number[], left: number, right: number): Pivot[] {
+        const pivots: Pivot[] = [];
+        for (let i = left; i < lows.length - right; i++) {
+            const current = lows[i];
+            let isPivot = true;
 
-    detectBearishDivergence(prices: number[], rsi: number[], lookback: number = 10): boolean {
-        // Simple Pivot Logic:
-        // Look for Price Higher High AND RSI Lower High in the last 'lookback' candles
-        // Focusing on the most recent peak vs previous peak
-
-        if (prices.length < lookback || rsi.length < lookback) return false;
-
-        const curIdx = prices.length - 1;
-        const curPrice = prices[curIdx];
-        const curRSI = rsi[curIdx];
-
-        // Only check if current RSI is somewhat elevated (e.g. > 60)
-        if (curRSI < 60) return false;
-
-        // Find previous peak in price
-        let prevPricePeak = -1;
-        let prevRSIPeak = -1;
-
-        for (let i = curIdx - 2; i > curIdx - lookback; i--) {
-            if (prices[i] > prices[i - 1] && prices[i] > prices[i + 1]) {
-                // Found a local high
-                prevPricePeak = prices[i];
-                prevRSIPeak = rsi[i];
-                break; // Just compare with the most recent significant high
+            for (let j = 1; j <= left; j++) if (lows[i - j] <= current) isPivot = false;
+            if (isPivot) {
+                for (let j = 1; j <= right; j++) if (lows[i + j] <= current) isPivot = false;
             }
-        }
 
-        if (prevPricePeak !== -1) {
-            // Price Higher High: Current > Previous
-            // RSI Lower High: Current < Previous
-            if (curPrice > prevPricePeak && curRSI < prevRSIPeak) {
-                return true;
-            }
+            if (isPivot) pivots.push({ index: i, price: current });
         }
-
-        return false;
+        return pivots;
     },
 
-    detectVolumeExhaustion(volumes: number[], highs: number[], lows: number[], closes: number[], opens: number[]): { isExhaustion: boolean, spikeRatio: number } {
-        // Logic: Volume is HUGE (> 2x Avg) BUT Candle Body is Small (Doji/Spinning Top)
-        const len = volumes.length;
-        if (len < 20) return { isExhaustion: false, spikeRatio: 0 };
-
-        const currentVol = volumes[len - 1];
-
-        // Calculate Avg Vol (last 20)
-        let sumVol = 0;
-        for (let i = len - 21; i < len - 1; i++) sumVol += volumes[i];
-        const avgVol = sumVol / 20;
-
-        const spikeRatio = currentVol / (avgVol || 1);
-
-        if (spikeRatio < 2.0) return { isExhaustion: false, spikeRatio };
-
-        // Check Candle Body
-        const high = highs[len - 1];
-        const low = lows[len - 1];
-        const open = opens[len - 1];
-        const close = closes[len - 1];
-
-        const range = high - low;
-        const body = Math.abs(close - open);
-
-        // If body is less than 30% of total range => Indecision/Stalling
-        if (range > 0 && (body / range) < 0.3) {
-            return { isExhaustion: true, spikeRatio };
+    getNearestSupport(pivots: Pivot[], currentIdx: number): Pivot | null {
+        for (let i = pivots.length - 1; i >= 0; i--) {
+            if (pivots[i].index < currentIdx) return { ...pivots[i] };
         }
-
-        return { isExhaustion: false, spikeRatio };
-    },
-
-    detectRejectionWick(high: number, low: number, open: number, close: number): boolean {
-        // Long Upper Wick (> 50% of total range) at the top
-        const range = high - low;
-        if (range === 0) return false;
-
-        const upperWick = high - Math.max(open, close);
-        return (upperWick / range) > 0.5;
+        return null;
     }
 };
