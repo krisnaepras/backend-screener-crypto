@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/url"
 	"strconv"
@@ -50,6 +51,15 @@ func ensureSSLModeRequire(dbURL string) string {
 func NewPool(ctx context.Context, databaseURL string, cfg PoolConfig) (*pgxpool.Pool, error) {
 	databaseURL = ensureSSLModeRequire(databaseURL)
 
+	// Preserve the original host from the DSN so we can resolve A records even if the
+	// underlying driver passes an already-resolved IPv6 literal into DialFunc.
+	originalHost := ""
+	originalPort := ""
+	if u, err := url.Parse(databaseURL); err == nil {
+		originalHost = u.Hostname()
+		originalPort = u.Port()
+	}
+
 	poolCfg, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
 		return nil, err
@@ -64,13 +74,28 @@ func NewPool(ctx context.Context, databaseURL string, cfg PoolConfig) (*pgxpool.
 			return (&net.Dialer{}).DialContext(ctx, network, addr)
 		}
 
-		port, err := strconv.Atoi(portStr)
+		// If we were given an IPv6 literal address, switch to resolving via the original
+		// DSN host so we can still choose IPv4.
+		lookupHost := host
+		lookupPort := portStr
+		if ip := net.ParseIP(host); ip != nil && ip.To4() == nil && originalHost != "" {
+			lookupHost = originalHost
+			if originalPort != "" {
+				lookupPort = originalPort
+			}
+		}
+
+		port, err := strconv.Atoi(lookupPort)
 		if err != nil {
 			return (&net.Dialer{}).DialContext(ctx, network, addr)
 		}
 
-		ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+		ips, err := net.DefaultResolver.LookupIPAddr(ctx, lookupHost)
 		if err != nil {
+			// If DNS resolution fails but we have a hostname, try forcing IPv4 resolution.
+			if lookupHost != host {
+				return (&net.Dialer{}).DialContext(ctx, "tcp4", net.JoinHostPort(lookupHost, strconv.Itoa(port)))
+			}
 			return (&net.Dialer{}).DialContext(ctx, network, addr)
 		}
 
@@ -90,8 +115,13 @@ func NewPool(ctx context.Context, databaseURL string, cfg PoolConfig) (*pgxpool.
 		if lastErr != nil {
 			return nil, lastErr
 		}
-		// No IPv4 addresses found; fall back to default.
-		return (&net.Dialer{}).DialContext(ctx, network, addr)
+		// No IPv4 addresses found.
+		// If we switched to the hostname, attempt a tcp4 dial as a final chance.
+		if lookupHost != host {
+			return (&net.Dialer{}).DialContext(ctx, "tcp4", net.JoinHostPort(lookupHost, strconv.Itoa(port)))
+		}
+
+		return nil, errors.New("no IPv4 addresses resolved for database host")
 	}
 
 	poolCfg.MaxConns = cfg.MaxConns
