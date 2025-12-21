@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	httphandler "screener-backend/internal/delivery/http"
 	"screener-backend/internal/delivery/websocket"
@@ -17,6 +18,7 @@ func main() {
 	repo := repository.NewInMemoryScreenerRepository()
 	tokenRepo := repository.NewTokenRepository()
 	tradeRepo := repository.NewInMemoryTradeRepository()
+	autoScalpRepo := repository.NewInMemoryAutoScalpRepository()
 
 	// 2. Initialize FCM Client
 	fcmClient, err := fcm.NewClient()
@@ -32,15 +34,28 @@ func main() {
 	// 3. Initialize Usecase
 	binanceBaseURL := os.Getenv("BINANCE_BASE_URL")
 	uc := usecase.NewScreenerUsecase(repo, tokenRepo, fcmClient, binanceBaseURL)
+	
+	// 4. Initialize Auto Scalping Service
+	autoScalpService := usecase.NewAutoScalpingService(autoScalpRepo, repo)
+	
+	// Start auto scalping monitor (every 5 seconds)
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			autoScalpService.MonitorAndExecute()
+		}
+	}()
 
-	// 4. Start Screener Loop in background
+	// 5. Start Screener Loop in background
 	go uc.Run()
 
-	// 5. Initialize HTTP Handlers
+	// 6. Initialize HTTP Handlers
 	wsHandler := websocket.NewHandler(repo)
 	tokenHandler := httphandler.NewTokenHandler(tokenRepo)
 	testHandler := httphandler.NewTestHandler(fcmClient, tokenRepo)
 	tradeHandler := httphandler.NewTradeHandler(tradeRepo)
+	autoScalpHandler := httphandler.NewAutoScalpHandler(autoScalpService)
 
 	// Routes
 	http.HandleFunc("/ws", wsHandler.Handle)
@@ -73,6 +88,19 @@ func main() {
 	http.HandleFunc("/api/trades/history", tradeHandler.GetHistory)
 	http.HandleFunc("/api/trades/update", tradeHandler.UpdateEntry)
 	http.HandleFunc("/api/trades/delete", tradeHandler.DeleteEntry)
+
+	// Auto Scalping endpoints
+	http.HandleFunc("/api/autoscalp/settings", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			autoScalpHandler.GetSettings(w, r)
+		} else if r.Method == http.MethodPost {
+			autoScalpHandler.UpdateSettings(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	http.HandleFunc("/api/autoscalp/active", autoScalpHandler.GetActivePositions)
+	http.HandleFunc("/api/autoscalp/history", autoScalpHandler.GetHistory)
 
 	// Get port from environment variable (Heroku sets this)
 	port := os.Getenv("PORT")
