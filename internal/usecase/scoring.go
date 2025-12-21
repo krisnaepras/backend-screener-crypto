@@ -9,29 +9,38 @@ import (
 
 // CalculateScore computes the score based on market features.
 func CalculateScore(features *domain.MarketFeatures) float64 {
-	// Weights (Normal)
+	// Weights (Stricter for reversal accuracy)
 	// Overextension: 0-30
 	// Crowding: 0-20
-	// Exhaustion: 0-25
-	// Structure: 0-25
+	// Exhaustion: 0-30 (increased from 25)
+	// Structure: 0-20 (decreased from 25)
 
 	sOver := 0.0
-	if features.PctChange24h >= 40 {
+	// More aggressive pump = higher score
+	if features.PctChange24h >= 50 {
+		sOver += 20 // Extreme pump
+	} else if features.PctChange24h >= 40 {
 		sOver += 15
-	} else if features.PctChange24h >= 20 {
+	} else if features.PctChange24h >= 25 {
 		sOver += 10
+	} else if features.PctChange24h >= 15 {
+		sOver += 5
 	}
 
-	// EMA Overext
-	if features.OverExtEma >= 0.05 {
+	// EMA Overext - stricter threshold
+	if features.OverExtEma >= 0.08 {
+		sOver += 15 // Very overextended
+	} else if features.OverExtEma >= 0.05 {
 		sOver += 10
 	} else if features.OverExtEma >= 0.03 {
 		sOver += 5
 	}
 
 	// VWAP Overext
-	if features.OverExtVwap >= 0.03 {
+	if features.OverExtVwap >= 0.05 {
 		sOver += 5
+	} else if features.OverExtVwap >= 0.03 {
+		sOver += 3
 	}
 
 	if sOver > 30 {
@@ -39,16 +48,20 @@ func CalculateScore(features *domain.MarketFeatures) float64 {
 	}
 
 	sCrowd := 0.0
-	// Funding
-	if features.FundingRate > 0.0001 {
-		sCrowd += 5
+	// Funding - stricter for high leverage crowding
+	if features.FundingRate > 0.001 {
+		sCrowd += 10 // Very high funding
+	} else if features.FundingRate > 0.0005 {
+		sCrowd += 7
+	} else if features.FundingRate > 0.0001 {
+		sCrowd += 3
 	}
-	if features.FundingRate > 0.0005 {
-		sCrowd += 10
-	}
-	// OI delta
-	if features.OpenInterestDelta > 0 {
-		sCrowd += 5
+	
+	// OI delta - confirms one-sided position building
+	if features.OpenInterestDelta > 10 {
+		sCrowd += 7
+	} else if features.OpenInterestDelta > 5 {
+		sCrowd += 3
 	}
 
 	if sCrowd > 20 {
@@ -56,30 +69,40 @@ func CalculateScore(features *domain.MarketFeatures) float64 {
 	}
 
 	sExhaust := 0.0
-	if features.RSI > 70 {
-		sExhaust += 15
-	} else if features.RSI > 60 {
+	// RSI - stricter thresholds for reversal
+	if features.RSI > 80 {
+		sExhaust += 20 // Extreme overbought
+	} else if features.RSI > 75 {
+		sExhaust += 15 // Very overbought
+	} else if features.RSI > 70 {
+		sExhaust += 10
+	} else if features.RSI > 65 {
 		sExhaust += 5
 	}
 
 	if features.IsAboveUpperBand {
 		sExhaust += 5
 	}
+	
+	// Rejection wick ratio - shows selling pressure at highs
+	if features.RejectionWickRatio > 0.5 {
+		sExhaust += 5 // Strong rejection
+	}
 
-	if sExhaust > 25 {
-		sExhaust = 25
+	if sExhaust > 30 {
+		sExhaust = 30
 	}
 
 	sStruct := 0.0
 	if features.IsBreakdown {
-		sStruct += 15
+		sStruct += 12
 	}
 	if features.IsRetest {
-		sStruct += 10
+		sStruct += 8
 	}
 
-	if sStruct > 25 {
-		sStruct = 25
+	if sStruct > 20 {
+		sStruct = 20
 	}
 
 	return sOver + sCrowd + sExhaust + sStruct
@@ -103,6 +126,15 @@ func ExtractFeatures(
 	currentClose := prices[lastIdx]
 	currentHigh := highs[lastIdx]
 	currentLow := lows[lastIdx]
+	
+	// Calculate rejection wick ratio (upper wick / total candle range)
+	// High rejection wick = selling pressure at highs = reversal signal
+	rejectionWickRatio := 0.0
+	candleRange := currentHigh - currentLow
+	if candleRange > 0 {
+		upperWick := currentHigh - currentClose
+		rejectionWickRatio = upperWick / candleRange
+	}
 
 	// Indicators
 	currentEma := 0.0
@@ -178,7 +210,7 @@ func ExtractFeatures(
 		CandleRangeRatio:   0, // Placeholder
 		RSI:                currentRsi,
 		IsRsiBearishDiv:    false,
-		RejectionWickRatio: 0, // Placeholder
+		RejectionWickRatio: rejectionWickRatio,
 		FundingRate:        fundingRate,
 		OpenInterestDelta:  oiDelta,
 		NearestSupport:     supportPrice,

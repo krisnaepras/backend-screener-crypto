@@ -23,7 +23,7 @@ func (uc *ScreenerUsecase) sendNotificationsForTriggers(coins []domain.CoinData)
 	cooldownDuration := 5 * time.Minute
 
 	for _, coin := range coins {
-		// Notify for TRIGGER (score >= 70) and SETUP (score >= 50)
+		// Notify for TRIGGER (score >= 75) and SETUP (score >= 55)
 		if coin.Status != "TRIGGER" && coin.Status != "SETUP" {
 			continue
 		}

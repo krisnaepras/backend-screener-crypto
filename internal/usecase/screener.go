@@ -173,15 +173,19 @@ func (uc *ScreenerUsecase) process() {
 					Features:           features,
 				}
 				
-				// Determine Status based on Score (4 levels)
-				if scoreResult >= 70 {
+				// Determine Status based on Score (4 levels - stricter for HIGH)
+				// HIGH: 75+ (requires multiple strong confirmations)
+				// SETUP: 55+ (decent setup with some confirmations)
+				// WATCH: 25+ (early signal, needs monitoring)
+				// AVOID: <25 (insufficient setup)
+				if scoreResult >= 75 {
 					coin.Status = "TRIGGER"
-				} else if scoreResult >= 50 {
+				} else if scoreResult >= 55 {
 					coin.Status = "SETUP"
-				} else if scoreResult >= 20 {
+				} else if scoreResult >= 25 {
 					coin.Status = "WATCH"
 				}
-				// else remains AVOID (score < 20)
+				// else remains AVOID (score < 25)
 
 				mu.Lock()
 				computedCoins = append(computedCoins, coin)
