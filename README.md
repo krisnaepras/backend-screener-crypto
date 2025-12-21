@@ -82,8 +82,12 @@ If `DATABASE_URL` is set but `API_ENCRYPTION_KEY` is missing/too short, the serv
 
 ### Heroku
 
-- Set Postgres URL:
-  - `heroku config:set DATABASE_URL="<your-postgres-url>" --app <app-name>`
+- Set Postgres URL (options):
+  - If you use the Heroku Postgres add-on, it typically provides `DATABASE_URL` automatically.
+  - If you only have `HEROKU_POSTGRESQL_YELLOW_URL` (or another color), either:
+    - leave it as-is (the server will auto-detect `HEROKU_POSTGRESQL_*_URL`), or
+    - promote it: `heroku config:set DATABASE_URL="$HEROKU_POSTGRESQL_YELLOW_URL" --app <app-name>`
+  - If using an external Postgres (e.g. Supabase pooler): `heroku config:set DATABASE_URL="<your-postgres-url>" --app <app-name>`
 - Set encryption key (generate a strong random key):
   - `heroku config:set API_ENCRYPTION_KEY="$(openssl rand -base64 32)" --app <app-name>`
 

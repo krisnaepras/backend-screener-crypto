@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	httphandler "screener-backend/internal/delivery/http"
@@ -16,6 +17,35 @@ import (
 	"screener-backend/internal/usecase"
 )
 
+func resolveDatabaseURL() string {
+	if v := strings.TrimSpace(os.Getenv("DATABASE_URL")); v != "" {
+		return v
+	}
+
+	// Common case: user references the add-on variable explicitly.
+	if v := strings.TrimSpace(os.Getenv("HEROKU_POSTGRESQL_YELLOW_URL")); v != "" {
+		return v
+	}
+
+	// Fallback: scan any Heroku Postgres add-on URL.
+	for _, kv := range os.Environ() {
+		parts := strings.SplitN(kv, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := parts[0]
+		val := strings.TrimSpace(parts[1])
+		if val == "" {
+			continue
+		}
+		if strings.HasPrefix(key, "HEROKU_POSTGRESQL_") && strings.HasSuffix(key, "_URL") {
+			return val
+		}
+	}
+
+	return ""
+}
+
 func main() {
 	ctx := context.Background()
 
@@ -26,11 +56,11 @@ func main() {
 	
 	// Initialize Binance API Repository with encryption key
 	encryptionKey := os.Getenv("API_ENCRYPTION_KEY")
-	dbURL := os.Getenv("DATABASE_URL")
+	dbURL := resolveDatabaseURL()
 	if dbURL != "" {
 		// Production safety: do not allow weak/empty encryption key when persisting secrets.
 		if len(encryptionKey) < 32 {
-			log.Fatal("API_ENCRYPTION_KEY is required and must be at least 32 characters when DATABASE_URL is set")
+			log.Fatal("API_ENCRYPTION_KEY is required and must be at least 32 characters when Postgres is enabled")
 		}
 	} else {
 		// Dev fallback only (in-memory storage).
@@ -57,7 +87,7 @@ func main() {
 		autoScalpRepo = repository.NewPostgresAutoScalpRepository(pool)
 		binanceAPIRepo = repository.NewPostgresBinanceAPIRepository(pool, encryptionKey)
 	} else {
-		log.Println("⚠ DATABASE_URL not set; using in-memory storage")
+		log.Println("⚠ Postgres not configured (DATABASE_URL / HEROKU_POSTGRESQL_*_URL not set); using in-memory storage")
 		autoScalpRepo = repository.NewInMemoryAutoScalpRepository()
 		binanceAPIRepo = repository.NewBinanceAPIRepository(encryptionKey)
 	}
