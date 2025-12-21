@@ -34,7 +34,7 @@ func main() {
 	var binanceAPIRepo domain.BinanceAPIStore
 
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
-		pool, err := db.NewPool(ctx, dbURL, db.DefaultPoolConfig())
+		pool, err := db.NewPool(ctx, dbURL, db.PoolConfigFromEnv())
 		if err != nil {
 			log.Fatalf("Failed to create DB pool: %v", err)
 		}
