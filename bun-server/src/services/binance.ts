@@ -68,9 +68,9 @@ export class BinanceService {
         }
     }
 
-    async getKlines(symbol: string, limit = 300): Promise<{ prices: number[], highs: number[], lows: number[], volumes: number[], opens: number[] }> {
+    async getKlines(symbol: string, interval: string = "15m", limit = 100): Promise<{ prices: number[], highs: number[], lows: number[], volumes: number[], opens: number[] }> {
         try {
-            const res = await this.fetchWithTimeout(`${this.baseUrl}/fapi/v1/klines?symbol=${symbol}&interval=15m&limit=${limit}`);
+            const res = await this.fetchWithTimeout(`${this.baseUrl}/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`);
             const raw = await res.json() as any[][];
 
             // raw[i]: [time, open, high, low, close, volume, ...]

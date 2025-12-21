@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
+import { staticPlugin } from "@elysiajs/static";
 import { ScreenerService } from "./services/screener";
 
 // Initialize Service
@@ -45,10 +46,19 @@ const app = new Elysia()
             description: "Connect here for real-time updates."
         }
     })
-    .listen(process.env.PORT || 8080);
+    .use(staticPlugin({
+        assets: "public",
+        prefix: "/"
+    }))
+    .get("/", () => Bun.file("public/index.html")) // Fallback for SPA
+    .get("/api/logs", async () => {
+        return await screener.getTradeLogs();
+    })
+    .get("/swagger", () => ({ status: "OK" })) // Temp swagger placeholder
+    .listen(8181);
 
-console.log(`🦊 Server running at ${app.server?.hostname}:${app.server?.port}`);
-console.log(`📘 Swagger UI at http://${app.server?.hostname}:${app.server?.port}/swagger`);
+console.log(`🦊 Server running at http://localhost:8181`);
+console.log(`📘 Swagger UI at http://localhost:8181/swagger`);
 
 // Broadcast updates
 setInterval(() => {

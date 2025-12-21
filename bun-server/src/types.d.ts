@@ -30,6 +30,24 @@ export interface CoinData {
     price: number;
     score: number;
     status: string; // "TRIGGER" | "SETUP" | "WATCH" | "NORMAL"
+    priceChangePercent: number;
+    fundingRate: number;
     features: MarketFeatures | null;
     lastUpdated: number;
+
+    // Trade Tracking
+    tradeActive: boolean;
+    tradeEntryPrice?: number;
+    tradeStartTime?: number;
+}
+
+export interface TradeLog {
+    id: string;
+    symbol: string;
+    entryPrice: number;
+    exitPrice: number;
+    pnl: number; // 50x leverage
+    startTime: number;
+    endTime: number;
+    exitReason: string;
 }

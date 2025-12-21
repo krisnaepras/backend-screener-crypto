@@ -1,6 +1,8 @@
 import { CoinData, MarketFeatures } from "../types.d";
 import { BinanceService } from "./binance";
 import { Indicators } from "../utils/indicators";
+import { join } from "path";
+import { appendFile, readFile } from "fs/promises";
 
 // Configuration
 const WATCHTOWER_INTERVAL = 10 * 1000; // 10 seconds
@@ -20,6 +22,22 @@ export class ScreenerService {
 
     constructor() {
         this.binance = new BinanceService();
+        this.ensureLogDir();
+    }
+
+    private async ensureLogDir() {
+        // Ensure logs directory exists (optional, Bun usually handles write well, but good practice)
+        // Ignoring for now, assuming write will work or throw.
+    }
+
+    async getTradeLogs(): Promise<any[]> {
+        try {
+            const path = join(process.cwd(), "trades.jsonl");
+            const content = await readFile(path, "utf-8");
+            return content.trim().split("\n").map(line => JSON.parse(line)).reverse();
+        } catch (e) {
+            return [];
+        }
     }
 
     start() {
@@ -96,9 +114,9 @@ export class ScreenerService {
     }
 
     private async analyzeSymbol(symbol: string) {
-        // 1. Fetch Heavy Data
-        const klines = await this.binance.getKlines(symbol, 300); // 300 candles for EMA
-        if (klines.prices.length < 300) return;
+        // 1. Fetch Heavy Data (Reversal Timeframe: 1m for Sniping)
+        const klines = await this.binance.getKlines(symbol, "1m", 60); // 1 hour of data context
+        if (klines.prices.length < 50) return;
 
         const openInterest = await this.binance.getOpenInterest(symbol);
         const fundingRate = await this.binance.getFundingRate(symbol);
@@ -148,22 +166,69 @@ export class ScreenerService {
 
         // 5. Scoring
         const score = this.calculateReversalScore(features);
+        let status = score >= 70 ? "TRIGGER" : score >= 50 ? "SETUP" : "WATCH";
 
-        // 6. Update State
-        const status = score >= 70 ? "TRIGGER" : score >= 50 ? "SETUP" : "WATCH";
-
-        // Upsert to coins list
+        // 6. Persistence & State Machine
         const existingIdx = this.coins.findIndex(c => c.symbol === symbol);
+        const existingCoin = existingIdx !== -1 ? this.coins[existingIdx] : null;
+
+        let tradeActive = existingCoin?.tradeActive || false;
+        let tradeEntryPrice = existingCoin?.tradeEntryPrice;
+        let tradeStartTime = existingCoin?.tradeStartTime;
+
+        // STATE MACHINE
+        if (tradeActive) {
+            // Check Exit Conditions (Post-drop Exhaustion)
+            const isPriceRecovering = curPrice > ema21[currentIdx]; // Price broke above EMA21
+            const isOversold = rsi[currentIdx] < 30; // RSI oversold
+            const isCooldwn = score < 50; // Use score drop as backup
+
+            if (isPriceRecovering || isOversold) {
+                // EXIT TRADE
+                const exitPrice = curPrice;
+                const pnlRaw = (tradeEntryPrice! - exitPrice) / tradeEntryPrice!; // Short PnL: (Entry - Exit) / Entry
+                const pnlLeverage = pnlRaw * 100 * 50; // 50x
+
+                this.logTrade({
+                    id: crypto.randomUUID(),
+                    symbol,
+                    entryPrice: tradeEntryPrice!,
+                    exitPrice,
+                    pnl: pnlLeverage,
+                    startTime: tradeStartTime!,
+                    endTime: Date.now(),
+                    exitReason: isPriceRecovering ? "Price > EMA21" : "RSI < 30"
+                });
+
+                tradeActive = false;
+                tradeEntryPrice = undefined;
+                tradeStartTime = undefined;
+                status = "NORMAL"; // Cooldown
+            } else {
+                // MAINTAIN TRADE
+                status = "TRIGGER"; // Force lock status
+            }
+        } else {
+            // No active trade, check for Entry
+            if (status === "TRIGGER") {
+                tradeActive = true;
+                tradeEntryPrice = curPrice;
+                tradeStartTime = Date.now();
+            }
+        }
+
         const coinData: CoinData = {
             symbol,
             price: curPrice,
             score,
             status,
-            priceChangePercent: 0, // Need to merge with ticker data technically, but ok for now
+            priceChangePercent: 0,
             fundingRate,
-            basisSpread: 0,
             features,
-            lastUpdated: Date.now()
+            lastUpdated: Date.now(),
+            tradeActive,
+            tradeEntryPrice,
+            tradeStartTime
         };
 
         if (existingIdx !== -1) {
@@ -175,6 +240,12 @@ export class ScreenerService {
         // Clean up old coins (> 5 min no update)
         // this.coins = this.coins.filter(c => Date.now() - c.lastUpdated < 5 * 60 * 1000);
         this.coins.sort((a, b) => b.score - a.score);
+    }
+
+    private async logTrade(log: any) {
+        const path = join(process.cwd(), "trades.jsonl");
+        await appendFile(path, JSON.stringify(log) + "\n");
+        console.log(`[TRADE CLOSED] ${log.symbol} PnL: ${log.pnl.toFixed(2)}%`);
     }
 
     private calculateReversalScore(f: MarketFeatures): number {

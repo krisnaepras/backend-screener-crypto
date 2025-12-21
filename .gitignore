@@ -32,3 +32,4 @@ firebase-credentials.json
 .DS_Store
 Thumbs.db
 /bun-server/node_modules
+/bun

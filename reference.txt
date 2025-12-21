@@ -1,0 +1,5745 @@
+code reference from screenshoot figma SS 1
+/* Sidebar */
+
+position: absolute;
+width: 256px;
+height: 1024px;
+left: 0px;
+top: 0px;
+
+/* Background Color/2 */
+background: #1B2028;
+
+
+/* Rectangle 502 */
+
+position: absolute;
+width: 197px;
+height: 50px;
+left: 28px;
+top: 123px;
+
+/* Main/100 */
+background: #3A6FF8;
+box-shadow: 4px 4px 32px rgba(103, 90, 255, 0.07);
+border-radius: 10px;
+
+
+/* Bg */
+
+position: absolute;
+width: 256px;
+height: 1234px;
+left: 0px;
+top: 0px;
+
+border-radius: 0px;
+
+
+/* Top Menu */
+
+position: absolute;
+width: 166px;
+height: 352px;
+left: 40px;
+top: 136px;
+
+
+
+/* General */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 32px;
+
+position: absolute;
+width: 166px;
+height: 352px;
+left: 40px;
+top: 136px;
+
+
+
+/* Frame 2 */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 11px 8px 0px;
+gap: 20px;
+
+width: 166px;
+height: 32px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Icon/element-3 */
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 8.13%;
+right: 86.75%;
+top: 6.25%;
+bottom: 67.22%;
+
+/* Text/100 */
+background: #FFFFFF;
+
+
+/* Vector */
+
+position: absolute;
+left: 8.13%;
+right: 86.75%;
+top: 42.19%;
+bottom: 31.25%;
+
+/* Text/100 */
+background: #FFFFFF;
+
+
+/* Vector */
+
+position: absolute;
+left: 1.2%;
+right: 93.67%;
+top: 6.25%;
+bottom: 67.22%;
+
+/* Text/100 */
+background: #FFFFFF;
+
+
+/* Vector */
+
+position: absolute;
+left: 1.2%;
+right: 93.67%;
+top: 42.19%;
+bottom: 31.25%;
+
+/* Text/100 */
+background: #FFFFFF;
+
+
+/* Vector */
+
+position: absolute;
+left: 0%;
+right: 85.54%;
+top: 0%;
+bottom: 25%;
+
+opacity: 0;
+transform: rotate(-180deg);
+
+
+/* Overview */
+
+width: 67px;
+height: 21px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Frame 11 */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 0px 8px;
+gap: 20px;
+
+width: 166px;
+height: 32px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icon/graph */
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 6.78%;
+right: 86.66%;
+top: 5.82%;
+bottom: 60.16%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 0.75%;
+right: 87.49%;
+top: 10.17%;
+bottom: 28.91%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 0%;
+right: 85.54%;
+top: 0%;
+bottom: 25%;
+
+opacity: 0;
+
+
+/* Chart */
+
+width: 40px;
+height: 21px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Frame 7 */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 0px 8px;
+gap: 20px;
+
+width: 166px;
+height: 32px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Icon/wallet-2 */
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 3.77%;
+right: 91.72%;
+top: 25.78%;
+bottom: 69.53%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 9.71%;
+right: 86.3%;
+top: 28.75%;
+bottom: 53.75%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 0.75%;
+right: 86.9%;
+top: 8.59%;
+bottom: 33.59%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 0%;
+right: 85.54%;
+top: 0%;
+bottom: 25%;
+
+opacity: 0;
+transform: rotate(-180deg);
+
+
+/* Transactions */
+
+width: 91px;
+height: 21px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Frame 12 */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 0px 8px;
+gap: 20px;
+
+width: 166px;
+height: 32px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+flex-grow: 0;
+
+
+/* Icon/wallet-minus */
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 5.27%;
+right: 90.81%;
+top: 47.66%;
+bottom: 47.66%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 2.68%;
+right: 91.78%;
+top: 3.91%;
+bottom: 67.31%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 5.55%;
+right: 88.2%;
+top: 5.56%;
+bottom: 67.91%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 0.9%;
+right: 86.43%;
+top: 26.78%;
+bottom: 28.91%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 0.9%;
+right: 95.36%;
+top: 14.96%;
+bottom: 53.28%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 10.57%;
+right: 86.44%;
+top: 16.7%;
+bottom: 53.28%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 0%;
+right: 85.54%;
+top: 0%;
+bottom: 25%;
+
+opacity: 0;
+
+
+/* Wallet */
+
+width: 44px;
+height: 21px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Frame 13 */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 0px 8px;
+gap: 20px;
+
+width: 166px;
+height: 32px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 4;
+flex-grow: 0;
+
+
+/* Icon/message-text */
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 0.75%;
+right: 86.3%;
+top: 3.91%;
+bottom: 28.72%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 0%;
+right: 85.54%;
+top: 0%;
+bottom: 25%;
+
+opacity: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 3.77%;
+right: 89.31%;
+top: 22.66%;
+bottom: 72.66%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 3.77%;
+right: 91.72%;
+top: 38.28%;
+bottom: 57.03%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* News */
+
+width: 38px;
+height: 21px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Frame 7 */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 0px 8px;
+gap: 20px;
+
+width: 166px;
+height: 32px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 5;
+flex-grow: 0;
+
+
+/* Icon/sms */
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 0.75%;
+right: 86.3%;
+top: 8.59%;
+bottom: 33.59%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 3.76%;
+right: 89.31%;
+top: 25.76%;
+bottom: 59.78%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 0%;
+right: 85.54%;
+top: 0%;
+bottom: 25%;
+
+opacity: 0;
+
+
+/* Mail Box */
+
+width: 57px;
+height: 21px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Logo */
+
+position: absolute;
+width: 170px;
+height: 41px;
+left: 40px;
+top: 32px;
+
+
+
+/* Logoipsm */
+
+position: absolute;
+left: 28.82%;
+right: 11.76%;
+top: 19.51%;
+bottom: 19.51%;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 700;
+font-size: 21px;
+line-height: 25px;
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* Logo */
+
+position: absolute;
+left: 1.76%;
+right: 77.06%;
+top: 24.39%;
+bottom: 26.83%;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 0%;
+right: 3.33%;
+top: 0%;
+bottom: 0%;
+
+/* Main/100 */
+background: #3A6FF8;
+
+
+/* Vector */
+
+position: absolute;
+left: 2.78%;
+right: 0.55%;
+top: 0%;
+bottom: 0%;
+
+/* Main/100 */
+background: #3A6FF8;
+
+
+/* Frame 8 */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 0px 8px;
+gap: 20px;
+
+position: absolute;
+width: 166px;
+height: 32px;
+left: 40px;
+top: 888px;
+
+
+
+/* Icon/setting-2 */
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 4.97%;
+right: 90.51%;
+top: 25.78%;
+bottom: 50.78%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 0.75%;
+right: 86.28%;
+top: 5.66%;
+bottom: 30.64%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 0%;
+right: 85.54%;
+top: 0%;
+bottom: 25%;
+
+opacity: 0;
+
+
+/* Setting */
+
+width: 49px;
+height: 21px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Frame 14 */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 0px 8px;
+gap: 20px;
+
+position: absolute;
+width: 166px;
+height: 32px;
+left: 40px;
+top: 952px;
+
+
+
+/* Icon/logout */
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 4.91%;
+right: 86.6%;
+top: 5.41%;
+bottom: 30.41%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 1.73%;
+right: 90.51%;
+top: 35.16%;
+bottom: 60.16%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 1.06%;
+right: 96.03%;
+top: 24.7%;
+bottom: 49.69%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 0%;
+right: 85.54%;
+top: 0%;
+bottom: 25%;
+
+opacity: 0;
+
+
+/* Logout */
+
+width: 48px;
+height: 21px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Master Card */
+
+position: absolute;
+width: 355px;
+height: 180px;
+left: 285px;
+top: 350px;
+
+
+
+/* Rectangle 9 */
+
+position: absolute;
+width: 355px;
+height: 180px;
+left: 285px;
+top: 350px;
+
+/* Main/100 */
+background: #3A6FF8;
+border-radius: 15px;
+
+
+/* Group 14 */
+
+position: absolute;
+width: 355px;
+height: 180px;
+left: 285px;
+top: 350px;
+
+opacity: 0.3;
+
+
+/* Rectangle 9 */
+
+position: absolute;
+width: 355px;
+height: 180px;
+left: 285px;
+top: 350px;
+
+/* white */
+background: #FFFFFF;
+border-radius: 15px;
+
+
+/* image 168 */
+
+position: absolute;
+width: 356px;
+height: 198.43px;
+left: 284px;
+top: 340.24px;
+
+background: url(image.png);
+mix-blend-mode: color-burn;
+opacity: 0.66;
+
+
+/* Amount */
+
+position: absolute;
+width: 229px;
+height: 27px;
+left: 306px;
+top: 430px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 18px;
+line-height: 27px;
+/* identical to box height */
+display: flex;
+align-items: center;
+letter-spacing: 0.15em;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* chip */
+
+position: absolute;
+width: 37px;
+height: 24px;
+left: 583px;
+top: 370px;
+
+
+
+/* Rectangle 4 */
+
+position: absolute;
+left: 0%;
+right: 0%;
+top: 0%;
+bottom: 0%;
+
+/* chip_gold */
+background: linear-gradient(115.95deg, #DAAA00 0%, #FFF9CF 51.04%, #F0CA00 100%);
+border: 0.5px solid #A07400;
+border-radius: 5px;
+
+
+/* Rectangle 3 */
+
+position: absolute;
+left: 29.55%;
+right: 5.59%;
+top: 0%;
+bottom: 36.93%;
+
+border: 0.5px solid #A07400;
+border-radius: 50px;
+transform: rotate(90deg);
+
+
+/* Group 7 */
+
+position: absolute;
+left: 70.45%;
+right: 0%;
+top: 31.25%;
+bottom: 31.25%;
+
+
+
+/* Line 1 */
+
+position: absolute;
+left: 70.45%;
+right: 0%;
+top: 31.25%;
+bottom: 68.75%;
+
+border: 0.5px solid #A07400;
+
+
+/* Line 2 */
+
+position: absolute;
+left: 70.45%;
+right: 0%;
+top: 68.75%;
+bottom: 31.25%;
+
+border: 0.5px solid #A07400;
+transform: rotate(-180deg);
+
+
+/* Group 6 */
+
+position: absolute;
+left: 0%;
+right: 70.45%;
+top: 31.25%;
+bottom: 31.25%;
+
+
+
+/* Line 3 */
+
+position: absolute;
+left: 0%;
+right: 70.45%;
+top: 31.25%;
+bottom: 68.75%;
+
+border: 0.5px solid #A07400;
+
+
+/* Line 4 */
+
+position: absolute;
+left: 0%;
+right: 70.45%;
+top: 68.75%;
+bottom: 31.25%;
+
+border: 0.5px solid #A07400;
+transform: rotate(-180deg);
+
+
+/* Credit Card */
+
+position: absolute;
+width: 99px;
+height: 24px;
+left: 305px;
+top: 370px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 16px;
+line-height: 24px;
+/* identical to box height */
+letter-spacing: 0.03em;
+
+/* White */
+color: #FFFFFF;
+
+opacity: 0.6;
+
+
+/* Darrell Steward */
+
+position: absolute;
+width: 126px;
+height: 18px;
+left: 305px;
+top: 486px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+letter-spacing: 0.1em;
+text-transform: uppercase;
+
+/* Text/100 */
+color: #FFFFFF;
+
+opacity: 0.6;
+
+
+/* VIZA */
+
+position: absolute;
+width: 65px;
+height: 30px;
+left: 555px;
+top: 480px;
+
+font-family: 'Poppins';
+font-style: italic;
+font-weight: 700;
+font-size: 19.9214px;
+line-height: 30px;
+/* identical to box height */
+text-align: right;
+letter-spacing: 0.03em;
+
+/* White */
+color: #FFFFFF;
+
+
+
+/* header */
+
+position: absolute;
+width: 1185px;
+height: 100px;
+left: 255px;
+top: 0px;
+
+
+
+/* Rectangle 722 */
+
+position: absolute;
+width: 1185px;
+height: 100px;
+left: 0px;
+top: 0px;
+
+
+
+/* Dashboard */
+
+position: absolute;
+width: 182px;
+height: 48px;
+left: 31px;
+top: 26px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 32px;
+line-height: 48px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* Search bar */
+
+position: absolute;
+width: 450px;
+height: 44px;
+left: 319px;
+top: 28px;
+
+
+
+/* Rectangle 197 */
+
+position: absolute;
+width: 450px;
+height: 44px;
+left: 0px;
+top: 0px;
+
+/* Background Color/2 */
+background: #1B2028;
+border-radius: 8px;
+
+
+/* Icon/search-normal */
+
+position: absolute;
+width: 24px;
+height: 24px;
+left: 406px;
+top: 10px;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 90.5%;
+right: 4.94%;
+top: 25.57%;
+bottom: 27.84%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 94.5%;
+right: 4.72%;
+top: 66.48%;
+bottom: 25.57%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 90.22%;
+right: 4.44%;
+top: 22.73%;
+bottom: 22.73%;
+
+/* Text/10 */
+background: #9E9E9E;
+opacity: 0;
+
+
+/* Search... */
+
+position: absolute;
+width: 58px;
+height: 21px;
+left: 20px;
+top: 11px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+
+/* icon */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 871px;
+top: 28px;
+
+
+
+/* Rectangle 197 */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 871px;
+top: 28px;
+
+/* Background Color/2 */
+background: #1B2028;
+border-radius: 8px;
+
+
+/* Icon */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 0px;
+gap: 24px;
+
+position: absolute;
+width: 24px;
+height: 24px;
+left: 881px;
+top: 38px;
+
+
+
+/* Icon / Notification */
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* notification */
+
+position: absolute;
+width: 24px;
+height: 24px;
+left: 0px;
+top: 0px;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 13.44%;
+right: 13.49%;
+top: 9.04%;
+bottom: 14.46%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 39.27%;
+right: 39.04%;
+top: 4.92%;
+bottom: 83.56%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 34.46%;
+right: 34.29%;
+top: 79.42%;
+bottom: 4.96%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 0%;
+right: 0%;
+top: 0%;
+bottom: 0%;
+
+/* Text/10 */
+background: #9E9E9E;
+opacity: 0;
+
+
+/* Ellipse 2 */
+
+box-sizing: border-box;
+
+position: absolute;
+width: 6px;
+height: 6px;
+left: 14px;
+top: 2px;
+
+/* Sec/100 */
+background: #F46D22;
+/* Text/100 */
+border: 1px solid #FFFFFF;
+
+
+/* Frame 37 */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px;
+gap: 15px;
+
+position: absolute;
+width: 209px;
+height: 44px;
+left: 945px;
+top: 28px;
+
+
+
+/* Photo */
+
+width: 44px;
+height: 44px;
+
+/* Text/10 */
+background: #9E9E9E;
+border-radius: 10px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Courtney Henry */
+
+width: 111px;
+height: 21px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icon/arrow-down */
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 92.21%;
+right: 3.69%;
+top: 45.19%;
+bottom: 43.39%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 88.52%;
+right: 0%;
+top: 22.73%;
+bottom: 22.73%;
+
+opacity: 0;
+
+
+/* coin-card */
+
+position: absolute;
+width: 258px;
+height: 178px;
+left: 286px;
+top: 140px;
+
+
+
+/* Rectangle 549 */
+
+position: absolute;
+width: 258px;
+height: 178px;
+left: 0px;
+top: 0px;
+
+/* Background Color/2 */
+background: #1B2028;
+box-shadow: 4px 4px 33px rgba(0, 0, 0, 0.05);
+border-radius: 15px;
+
+
+/* Icon/arrow-up */
+
+position: absolute;
+width: 18px;
+height: 18px;
+left: 222px;
+top: 33px;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 87.5%;
+right: 8.43%;
+top: 21.98%;
+bottom: 74.79%;
+
+/* Secondary/100 */
+background: #1ECB4F;
+
+
+/* Vector */
+
+position: absolute;
+left: 86.05%;
+right: 6.98%;
+top: 18.54%;
+bottom: 71.35%;
+
+opacity: 0;
+transform: rotate(-180deg);
+
+
+/* +0.25% */
+
+position: absolute;
+width: 53px;
+height: 23px;
+left: 19px;
+top: 131px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 14px;
+line-height: 22px;
+/* identical to box height, or 160% */
+display: flex;
+align-items: center;
+letter-spacing: 0.02em;
+
+/* Secondary/100 */
+color: #1ECB4F;
+
+
+
+/* Amount */
+
+position: absolute;
+width: 142px;
+height: 32px;
+left: 20px;
+top: 87px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 21px;
+line-height: 32px;
+/* identical to box height */
+letter-spacing: 0.02em;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 56px;
+height: 24px;
+left: 82px;
+top: 23px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 16px;
+line-height: 24px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 24px;
+height: 18px;
+left: 82px;
+top: 53px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+opacity: 0.6;
+
+
+/* icon */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 19px;
+top: 23px;
+
+
+
+/* Rectangle 723 */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 19px;
+top: 23px;
+
+/* Background Color/1 */
+background: #31353F;
+border-radius: 10px;
+
+
+/* Icon/bitcoin-(btc) */
+
+position: absolute;
+width: 24px;
+height: 24px;
+left: 29px;
+top: 33px;
+
+
+
+/* BG 203 */
+
+position: absolute;
+left: 11.24%;
+right: 79.46%;
+top: 18.54%;
+bottom: 67.98%;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 14.93%;
+right: 82.29%;
+top: 25.7%;
+bottom: 72.71%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.02%;
+right: 80.23%;
+top: 19.66%;
+bottom: 69.1%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 14.93%;
+right: 82.71%;
+top: 23.26%;
+bottom: 75.15%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 11.24%;
+right: 79.46%;
+top: 18.54%;
+bottom: 67.98%;
+
+opacity: 0;
+
+
+/* graph */
+
+position: absolute;
+width: 111px;
+height: 46.5px;
+left: 129px;
+top: 100px;
+
+
+
+/* Ellipse 69 */
+
+position: absolute;
+width: 10px;
+height: 10px;
+left: 230px;
+top: 112px;
+
+/* Main/100 */
+background: #3A6FF8;
+filter: blur(2.5px);
+
+
+/* Vector 10 */
+
+position: absolute;
+width: 107px;
+height: 46.5px;
+left: 129px;
+top: 100px;
+
+/* Main/100 */
+border: 2px solid #3A6FF8;
+
+
+/* coin-card */
+
+position: absolute;
+width: 258px;
+height: 178px;
+left: 862px;
+top: 140px;
+
+
+
+/* Rectangle 549 */
+
+position: absolute;
+width: 258px;
+height: 178px;
+left: 0px;
+top: 0px;
+
+/* Background Color/2 */
+background: #1B2028;
+box-shadow: 4px 4px 33px rgba(0, 0, 0, 0.05);
+border-radius: 15px;
+
+
+/* Icon/arrow-up */
+
+position: absolute;
+width: 18px;
+height: 18px;
+left: 222px;
+top: 33px;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 87.5%;
+right: 8.43%;
+top: 21.98%;
+bottom: 74.79%;
+
+/* Secondary/100 */
+background: #1ECB4F;
+
+
+/* Vector */
+
+position: absolute;
+left: 86.05%;
+right: 6.98%;
+top: 18.54%;
+bottom: 71.35%;
+
+opacity: 0;
+transform: rotate(-180deg);
+
+
+/* +0.25% */
+
+position: absolute;
+width: 53px;
+height: 23px;
+left: 19px;
+top: 131px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 14px;
+line-height: 22px;
+/* identical to box height, or 160% */
+display: flex;
+align-items: center;
+letter-spacing: 0.02em;
+
+/* Secondary/100 */
+color: #1ECB4F;
+
+
+
+/* Amount */
+
+position: absolute;
+width: 142px;
+height: 32px;
+left: 20px;
+top: 87px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 21px;
+line-height: 32px;
+/* identical to box height */
+letter-spacing: 0.02em;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 79px;
+height: 24px;
+left: 82px;
+top: 23px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 16px;
+line-height: 24px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 21px;
+height: 18px;
+left: 82px;
+top: 53px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+opacity: 0.6;
+
+
+/* icon */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 19px;
+top: 23px;
+
+/* Background Color/1 */
+background: #31353F;
+border-radius: 10px;
+
+
+/* Icon/ethereum-(eth) */
+
+position: absolute;
+width: 24px;
+height: 24px;
+left: 29px;
+top: 33px;
+
+
+
+/* BG 121 */
+
+position: absolute;
+left: 11.24%;
+right: 79.46%;
+top: 18.54%;
+bottom: 67.98%;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 13.82%;
+right: 82.03%;
+top: 26.57%;
+bottom: 69.24%;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+
+/* Vector */
+
+position: absolute;
+left: 14.48%;
+right: 82.71%;
+top: 23.73%;
+bottom: 73.65%;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+
+/* Vector */
+
+position: absolute;
+left: 16.21%;
+right: 81.61%;
+top: 20.03%;
+bottom: 75.2%;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+
+/* Vector */
+
+position: absolute;
+left: 13.39%;
+right: 84.44%;
+top: 20.04%;
+bottom: 75.13%;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+
+/* Vector */
+
+position: absolute;
+left: 11.24%;
+right: 79.46%;
+top: 18.54%;
+bottom: 67.98%;
+
+opacity: 0;
+
+
+/* graph */
+
+position: absolute;
+width: 111px;
+height: 46.5px;
+left: 129px;
+top: 100px;
+
+
+
+/* Ellipse 69 */
+
+position: absolute;
+width: 10px;
+height: 10px;
+left: 230px;
+top: 112px;
+
+/* Main/Linear */
+background: #3A6FF8;
+filter: blur(2.5px);
+
+
+/* Vector 10 */
+
+position: absolute;
+width: 107px;
+height: 46.5px;
+left: 129px;
+top: 100px;
+
+/* Main/Linear */
+border: 2px solid #3A6FF8;
+
+
+/* coin-card */
+
+position: absolute;
+width: 258px;
+height: 178px;
+left: 574px;
+top: 140px;
+
+
+
+/* Rectangle 549 */
+
+position: absolute;
+width: 258px;
+height: 178px;
+left: 0px;
+top: 0px;
+
+/* Background Color/2 */
+background: #1B2028;
+box-shadow: 4px 4px 33px rgba(0, 0, 0, 0.05);
+border-radius: 15px;
+
+
+/* Icon/arrow-up */
+
+position: absolute;
+width: 18px;
+height: 18px;
+left: 222px;
+top: 33px;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 87.5%;
+right: 8.43%;
+top: 21.98%;
+bottom: 74.79%;
+
+/* Secondary/100 */
+background: #1ECB4F;
+
+
+/* Vector */
+
+position: absolute;
+left: 86.05%;
+right: 6.98%;
+top: 18.54%;
+bottom: 71.35%;
+
+opacity: 0;
+transform: rotate(-180deg);
+
+
+/* +0.25% */
+
+position: absolute;
+width: 53px;
+height: 23px;
+left: 19px;
+top: 131px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 14px;
+line-height: 22px;
+/* identical to box height, or 160% */
+display: flex;
+align-items: center;
+letter-spacing: 0.02em;
+
+/* Secondary/100 */
+color: #1ECB4F;
+
+
+
+/* Amount */
+
+position: absolute;
+width: 142px;
+height: 32px;
+left: 20px;
+top: 87px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 21px;
+line-height: 32px;
+/* identical to box height */
+letter-spacing: 0.02em;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 63px;
+height: 24px;
+left: 82px;
+top: 23px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 16px;
+line-height: 24px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 19px;
+height: 18px;
+left: 82px;
+top: 53px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+opacity: 0.6;
+
+
+/* icon */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 19px;
+top: 23px;
+
+
+
+/* Rectangle 723 */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 19px;
+top: 23px;
+
+/* Background Color/1 */
+background: #31353F;
+border-radius: 10px;
+
+
+/* Icon/litecoin(ltc) */
+
+position: absolute;
+width: 24px;
+height: 24px;
+left: 29px;
+top: 33px;
+
+
+
+/* BG 149 */
+
+position: absolute;
+left: 11.24%;
+right: 79.46%;
+top: 18.54%;
+bottom: 67.98%;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 12.02%;
+right: 80.23%;
+top: 19.66%;
+bottom: 69.1%;
+
+/* Main/100 */
+background: #64CFF9;
+
+
+/* Vector */
+
+position: absolute;
+left: 11.24%;
+right: 79.46%;
+top: 18.54%;
+bottom: 67.98%;
+
+opacity: 0;
+
+
+/* graph */
+
+position: absolute;
+width: 111px;
+height: 46.5px;
+left: 129px;
+top: 100px;
+
+
+
+/* Ellipse 69 */
+
+position: absolute;
+width: 10px;
+height: 10px;
+left: 230px;
+top: 112px;
+
+/* Main/100 */
+background: #64CFF9;
+filter: blur(2.5px);
+
+
+/* Vector 10 */
+
+position: absolute;
+width: 107px;
+height: 46.5px;
+left: 129px;
+top: 100px;
+
+/* Main/100 */
+border: 2px solid #64CFF9;
+
+
+/* coin-card */
+
+position: absolute;
+width: 258px;
+height: 178px;
+left: 1150px;
+top: 140px;
+
+
+
+/* Rectangle 549 */
+
+position: absolute;
+width: 258px;
+height: 178px;
+left: 0px;
+top: 0px;
+
+/* Background Color/2 */
+background: #1B2028;
+box-shadow: 4px 4px 33px rgba(0, 0, 0, 0.05);
+border-radius: 15px;
+
+
+/* Icon/arrow-down */
+
+position: absolute;
+width: 18px;
+height: 18px;
+left: 222px;
+top: 33px;
+
+transform: rotate(-180deg);
+
+
+/* Vector */
+
+position: absolute;
+left: 87.5%;
+right: 8.43%;
+top: 21.99%;
+bottom: 74.79%;
+
+/* Sec/100 */
+background: #F46D22;
+transform: rotate(-180deg);
+
+
+/* Vector */
+
+position: absolute;
+left: 86.05%;
+right: 6.98%;
+top: 18.54%;
+bottom: 71.35%;
+
+opacity: 0;
+
+
+/* -0.25% */
+
+position: absolute;
+width: 51px;
+height: 23px;
+left: 19px;
+top: 131px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 14px;
+line-height: 22px;
+/* identical to box height, or 160% */
+display: flex;
+align-items: center;
+letter-spacing: 0.02em;
+
+/* Sec/100 */
+color: #F46D22;
+
+
+
+/* Amount */
+
+position: absolute;
+width: 142px;
+height: 32px;
+left: 20px;
+top: 87px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 21px;
+line-height: 32px;
+/* identical to box height */
+letter-spacing: 0.02em;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 57px;
+height: 24px;
+left: 82px;
+top: 23px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 16px;
+line-height: 24px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 22px;
+height: 18px;
+left: 82px;
+top: 53px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+opacity: 0.6;
+
+
+/* icon */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 19px;
+top: 23px;
+
+
+
+/* Rectangle 723 */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 19px;
+top: 23px;
+
+/* Background Color/1 */
+background: #31353F;
+border-radius: 10px;
+
+
+/* Icon/solana-(sol) */
+
+position: absolute;
+width: 24px;
+height: 24px;
+left: 29px;
+top: 33px;
+
+
+
+/* BG 198 */
+
+position: absolute;
+left: 11.24%;
+right: 79.46%;
+top: 18.54%;
+bottom: 67.98%;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 12.4%;
+right: 80.62%;
+top: 20.51%;
+bottom: 77.25%;
+
+/* Secondary/100 */
+background: #1ECB4F;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.4%;
+right: 80.62%;
+top: 24.16%;
+bottom: 73.6%;
+
+/* Secondary/100 */
+background: #1ECB4F;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.4%;
+right: 80.62%;
+top: 27.81%;
+bottom: 69.94%;
+
+/* Secondary/100 */
+background: #1ECB4F;
+
+
+/* Vector */
+
+position: absolute;
+left: 11.24%;
+right: 79.46%;
+top: 18.54%;
+bottom: 67.98%;
+
+opacity: 0;
+
+
+/* graph */
+
+position: absolute;
+width: 111px;
+height: 46.5px;
+left: 129px;
+top: 100px;
+
+
+
+/* Ellipse 69 */
+
+position: absolute;
+width: 10px;
+height: 10px;
+left: 230px;
+top: 112px;
+
+/* Secondary/100 */
+background: #1ECB4F;
+filter: blur(2.5px);
+
+
+/* Vector 10 */
+
+position: absolute;
+width: 107px;
+height: 46.5px;
+left: 129px;
+top: 100px;
+
+/* Secondary/100 */
+border: 2px solid #1ECB4F;
+
+
+/* Chart */
+
+position: absolute;
+width: 739px;
+height: 441px;
+left: 670px;
+top: 350px;
+
+
+
+/* Rectangle 496 */
+
+position: absolute;
+width: 739px;
+height: 441px;
+left: 0px;
+top: 0px;
+
+/* Background Color/2 */
+background: #1B2028;
+box-shadow: 4px 4px 33px rgba(0, 0, 0, 0.05);
+border-radius: 15px;
+
+
+/* Graphs */
+
+position: absolute;
+width: 623px;
+height: 188px;
+left: 88px;
+top: 186px;
+
+
+
+/* Vector 11 */
+
+position: absolute;
+width: 623px;
+height: 135.5px;
+left: 88px;
+top: 186px;
+
+/* Main/Linear */
+border: 2px solid #3A6FF8;
+
+
+/* Vector 12 */
+
+position: absolute;
+width: 623px;
+height: 188px;
+left: 88px;
+top: 186px;
+
+/* Main/Linear */
+background: #3A6FF8;
+opacity: 0.02;
+
+
+/* Frame 38 */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px;
+gap: 10px;
+
+position: absolute;
+width: 109px;
+height: 21px;
+left: 30px;
+top: 86px;
+
+
+
+/* Bitcoin/BTC */
+
+width: 81px;
+height: 21px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Stroke */
+color: #E4E4E4;
+
+opacity: 0.6;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Icon/arrow-down */
+
+width: 18px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 88.8%;
+right: 5.31%;
+top: 42.44%;
+bottom: 39.61%;
+
+/* Text/100 */
+background: #FFFFFF;
+
+
+/* Vector */
+
+position: absolute;
+left: 83.49%;
+right: 0%;
+top: 7.14%;
+bottom: 7.14%;
+
+opacity: 0;
+
+
+/* $35,352.02 */
+
+position: absolute;
+width: 99px;
+height: 27px;
+left: 30px;
+top: 111px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 18px;
+line-height: 27px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Stroke */
+color: #E4E4E4;
+
+
+
+/* Heading */
+
+position: absolute;
+width: 61px;
+height: 32px;
+left: 30px;
+top: 30px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 21px;
+line-height: 32px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* Months */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+gap: 88px;
+
+position: absolute;
+width: 628px;
+height: 16px;
+left: 82px;
+top: 397px;
+
+
+
+/* Text */
+
+width: 30px;
+height: 16px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 16px;
+/* identical to box height, or 133% */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Text */
+
+width: 26px;
+height: 16px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 16px;
+/* identical to box height, or 133% */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Text */
+
+width: 29px;
+height: 16px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 16px;
+/* identical to box height, or 133% */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Text */
+
+width: 29px;
+height: 16px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 16px;
+/* identical to box height, or 133% */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+flex-grow: 0;
+
+
+/* Text */
+
+width: 30px;
+height: 16px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 16px;
+/* identical to box height, or 133% */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 4;
+flex-grow: 0;
+
+
+/* Text */
+
+width: 30px;
+height: 16px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 16px;
+/* identical to box height, or 133% */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 5;
+flex-grow: 0;
+
+
+/* Amount */
+
+position: absolute;
+width: 46px;
+height: 222px;
+left: 30px;
+top: 162px;
+
+
+
+/* Amount */
+
+position: absolute;
+width: 46px;
+height: 18px;
+left: 30px;
+top: 162px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+
+/* Amount */
+
+position: absolute;
+width: 46px;
+height: 18px;
+left: 30px;
+top: 213px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+
+/* Amount */
+
+position: absolute;
+width: 46px;
+height: 18px;
+left: 30px;
+top: 264px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+
+/* Amount */
+
+position: absolute;
+width: 46px;
+height: 18px;
+left: 30px;
+top: 315px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+
+/* Amount */
+
+position: absolute;
+width: 46px;
+height: 18px;
+left: 30px;
+top: 366px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+
+/* Line 19 */
+
+position: absolute;
+width: 628px;
+height: 0px;
+left: 82px;
+top: 375px;
+
+background: #D9D9D9;
+/* Background Color/1 */
+border: 1px solid #31353F;
+
+
+/* pagination */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 0px;
+gap: 10px;
+
+position: absolute;
+width: 250px;
+height: 22px;
+left: 465px;
+top: 104px;
+
+
+
+/* panigation */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px 15px;
+gap: 15px;
+
+width: 40px;
+height: 22px;
+
+/* Main/Linear */
+background: #3A6FF8;
+border-radius: 15px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* 1h */
+
+width: 10px;
+height: 22px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 10px;
+line-height: 22px;
+/* identical to box height, or 220% */
+display: flex;
+align-items: center;
+text-align: center;
+
+/* Stroke */
+color: #E4E4E4;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* panigation */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px 15px;
+gap: 15px;
+
+width: 43px;
+height: 22px;
+
+/* Background Color/1 */
+border: 1px solid #31353F;
+border-radius: 15px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* 3h */
+
+width: 13px;
+height: 22px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 10px;
+line-height: 22px;
+/* identical to box height, or 220% */
+display: flex;
+align-items: center;
+text-align: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* panigation */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px 15px;
+gap: 15px;
+
+width: 41px;
+height: 22px;
+
+/* Background Color/1 */
+border: 1px solid #31353F;
+border-radius: 15px;
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* 1d */
+
+width: 11px;
+height: 22px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 10px;
+line-height: 22px;
+/* identical to box height, or 220% */
+display: flex;
+align-items: center;
+text-align: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* panigation */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px 15px;
+gap: 15px;
+
+width: 42px;
+height: 22px;
+
+/* Background Color/1 */
+border: 1px solid #31353F;
+border-radius: 15px;
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+flex-grow: 0;
+
+
+/* 1w */
+
+width: 12px;
+height: 22px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 10px;
+line-height: 22px;
+/* identical to box height, or 220% */
+display: flex;
+align-items: center;
+text-align: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* panigation */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px 15px;
+gap: 15px;
+
+width: 44px;
+height: 22px;
+
+/* Background Color/1 */
+border: 1px solid #31353F;
+border-radius: 15px;
+
+/* Inside auto layout */
+flex: none;
+order: 4;
+flex-grow: 0;
+
+
+/* 1m */
+
+width: 14px;
+height: 22px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 10px;
+line-height: 22px;
+/* identical to box height, or 220% */
+display: flex;
+align-items: center;
+text-align: center;
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* button */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 5px;
+gap: 10px;
+
+position: absolute;
+width: 87px;
+height: 32px;
+left: 618px;
+top: 30px;
+
+/* Background Color/1 */
+border: 1px solid #31353F;
+border-radius: 5px;
+
+
+/* Icon/dollar-circle */
+
+width: 18px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 16.74%;
+right: 81.68%;
+top: 52.51%;
+bottom: 40.81%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 7.47%;
+right: 75.29%;
+top: 26.33%;
+bottom: 26.8%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 13.87%;
+right: 84.55%;
+top: 40.81%;
+bottom: 52.48%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 5.75%;
+right: 73.56%;
+top: 21.88%;
+bottom: 21.88%;
+
+opacity: 0;
+
+
+/* USD */
+
+width: 21px;
+height: 22px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 10px;
+line-height: 22px;
+/* identical to box height, or 220% */
+display: flex;
+align-items: center;
+text-align: center;
+
+/* Stroke */
+color: #E4E4E4;
+
+opacity: 0.6;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Icon/arrow-down */
+
+width: 18px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 80.22%;
+right: 12.4%;
+top: 45.04%;
+bottom: 43.18%;
+
+/* Text/100 */
+background: #FFFFFF;
+
+
+/* Vector */
+
+position: absolute;
+left: 73.56%;
+right: 5.75%;
+top: 21.88%;
+bottom: 21.88%;
+
+opacity: 0;
+
+
+/* button */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 7px;
+gap: 10px;
+
+position: absolute;
+width: 32px;
+height: 32px;
+left: 571px;
+top: 30px;
+
+/* Background Color/1 */
+border: 1px solid #31353F;
+border-radius: 5px;
+
+
+/* Icon/candle */
+
+width: 18px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 35.35%;
+right: 61.13%;
+top: 55.27%;
+bottom: 24.8%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 35.35%;
+right: 61.13%;
+top: 24.8%;
+bottom: 64.65%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 61.13%;
+right: 35.35%;
+top: 64.65%;
+bottom: 24.8%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 61.13%;
+right: 35.35%;
+top: 24.8%;
+bottom: 55.27%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 28.32%;
+right: 54.1%;
+top: 31.84%;
+bottom: 41.21%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 54.1%;
+right: 28.32%;
+top: 41.21%;
+bottom: 31.84%;
+
+/* Text/10 */
+background: #9E9E9E;
+
+
+/* Vector */
+
+position: absolute;
+left: 21.88%;
+right: 21.88%;
+top: 21.88%;
+bottom: 21.88%;
+
+opacity: 0;
+
+
+/* Bars */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-end;
+padding: 0px;
+gap: 5px;
+
+position: absolute;
+width: 623px;
+height: 32px;
+left: 88px;
+top: 343px;
+
+opacity: 0.1;
+
+
+/* Rectangle 16 */
+
+width: 8px;
+height: 16px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Rectangle 31 */
+
+width: 8px;
+height: 22px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Rectangle 32 */
+
+width: 8px;
+height: 32px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Rectangle 33 */
+
+width: 8px;
+height: 17px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+flex-grow: 0;
+
+
+/* Rectangle 34 */
+
+width: 8px;
+height: 10px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 4;
+flex-grow: 0;
+
+
+/* Rectangle 18 */
+
+width: 8px;
+height: 13px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 5;
+flex-grow: 0;
+
+
+/* Rectangle 19 */
+
+width: 8px;
+height: 24px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 6;
+flex-grow: 0;
+
+
+/* Rectangle 29 */
+
+width: 8px;
+height: 14px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 7;
+flex-grow: 0;
+
+
+/* Rectangle 20 */
+
+width: 8px;
+height: 8px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 8;
+flex-grow: 0;
+
+
+/* Rectangle 35 */
+
+width: 8px;
+height: 16px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 9;
+flex-grow: 0;
+
+
+/* Rectangle 36 */
+
+width: 8px;
+height: 22px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 10;
+flex-grow: 0;
+
+
+/* Rectangle 37 */
+
+width: 8px;
+height: 32px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 11;
+flex-grow: 0;
+
+
+/* Rectangle 38 */
+
+width: 8px;
+height: 17px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 12;
+flex-grow: 0;
+
+
+/* Rectangle 39 */
+
+width: 8px;
+height: 10px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 13;
+flex-grow: 0;
+
+
+/* Rectangle 40 */
+
+width: 8px;
+height: 14px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 14;
+flex-grow: 0;
+
+
+/* Rectangle 41 */
+
+width: 8px;
+height: 8px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 15;
+flex-grow: 0;
+
+
+/* Rectangle 43 */
+
+width: 8px;
+height: 32px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 16;
+flex-grow: 0;
+
+
+/* Rectangle 44 */
+
+width: 8px;
+height: 17px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 17;
+flex-grow: 0;
+
+
+/* Rectangle 45 */
+
+width: 8px;
+height: 10px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 18;
+flex-grow: 0;
+
+
+/* Rectangle 46 */
+
+width: 8px;
+height: 13px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 19;
+flex-grow: 0;
+
+
+/* Rectangle 47 */
+
+width: 8px;
+height: 24px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 20;
+flex-grow: 0;
+
+
+/* Rectangle 42 */
+
+width: 8px;
+height: 16px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 21;
+flex-grow: 0;
+
+
+/* Rectangle 48 */
+
+width: 8px;
+height: 14px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 22;
+flex-grow: 0;
+
+
+/* Rectangle 49 */
+
+width: 8px;
+height: 8px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 23;
+flex-grow: 0;
+
+
+/* Rectangle 50 */
+
+width: 8px;
+height: 32px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 24;
+flex-grow: 0;
+
+
+/* Rectangle 51 */
+
+width: 8px;
+height: 17px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 25;
+flex-grow: 0;
+
+
+/* Rectangle 53 */
+
+width: 8px;
+height: 10px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 26;
+flex-grow: 0;
+
+
+/* Rectangle 54 */
+
+width: 8px;
+height: 14px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 27;
+flex-grow: 0;
+
+
+/* Rectangle 55 */
+
+width: 8px;
+height: 8px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 28;
+flex-grow: 0;
+
+
+/* Rectangle 56 */
+
+width: 8px;
+height: 32px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 29;
+flex-grow: 0;
+
+
+/* Rectangle 57 */
+
+width: 8px;
+height: 17px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 30;
+flex-grow: 0;
+
+
+/* Rectangle 52 */
+
+width: 8px;
+height: 10px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 31;
+flex-grow: 0;
+
+
+/* Rectangle 58 */
+
+width: 8px;
+height: 24px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 32;
+flex-grow: 0;
+
+
+/* Rectangle 59 */
+
+width: 8px;
+height: 14px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 33;
+flex-grow: 0;
+
+
+/* Rectangle 60 */
+
+width: 8px;
+height: 8px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 34;
+flex-grow: 0;
+
+
+/* Rectangle 61 */
+
+width: 8px;
+height: 16px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 35;
+flex-grow: 0;
+
+
+/* Rectangle 62 */
+
+width: 8px;
+height: 22px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 36;
+flex-grow: 0;
+
+
+/* Rectangle 63 */
+
+width: 8px;
+height: 32px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 37;
+flex-grow: 0;
+
+
+/* Rectangle 64 */
+
+width: 8px;
+height: 17px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 38;
+flex-grow: 0;
+
+
+/* Rectangle 65 */
+
+width: 8px;
+height: 10px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 39;
+flex-grow: 0;
+
+
+/* Rectangle 66 */
+
+width: 8px;
+height: 14px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 40;
+flex-grow: 0;
+
+
+/* Rectangle 67 */
+
+width: 8px;
+height: 8px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 41;
+flex-grow: 0;
+
+
+/* Rectangle 68 */
+
+width: 8px;
+height: 22px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 42;
+flex-grow: 0;
+
+
+/* Rectangle 69 */
+
+width: 8px;
+height: 32px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 43;
+flex-grow: 0;
+
+
+/* Rectangle 70 */
+
+width: 8px;
+height: 17px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 44;
+flex-grow: 0;
+
+
+/* Rectangle 71 */
+
+width: 8px;
+height: 10px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 45;
+flex-grow: 0;
+
+
+/* Rectangle 72 */
+
+width: 8px;
+height: 22px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 46;
+flex-grow: 0;
+
+
+/* Rectangle 73 */
+
+width: 8px;
+height: 32px;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+/* Inside auto layout */
+flex: none;
+order: 47;
+flex-grow: 0;
+
+
+/* My Portfolio */
+
+position: absolute;
+width: 360px;
+height: 434px;
+left: 280px;
+top: 562px;
+
+
+
+/* Rectangle 724 */
+
+position: absolute;
+width: 360px;
+height: 434px;
+left: 0px;
+top: 0px;
+
+/* Background Color/2 */
+background: #1B2028;
+box-shadow: 4px 4px 33px rgba(0, 0, 0, 0.05);
+border-radius: 15px;
+
+
+/* My Portfolio */
+
+position: absolute;
+width: 133px;
+height: 32px;
+left: 30px;
+top: 30px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 21px;
+line-height: 32px;
+/* identical to box height */
+letter-spacing: 0.03em;
+
+/* Stroke */
+color: #E4E4E4;
+
+
+
+/* row */
+
+position: absolute;
+width: 299px;
+height: 44px;
+left: 31px;
+top: 86px;
+
+
+
+/* -13.40% */
+
+position: absolute;
+width: 47px;
+height: 24px;
+left: 252px;
+top: 0px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 24px;
+/* identical to box height, or 200% */
+display: flex;
+align-items: center;
+text-align: right;
+
+/* Sec/100 */
+color: #F46D22;
+
+
+
+/* text */
+
+position: absolute;
+width: 78px;
+height: 24px;
+left: 60px;
+top: 0px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 16px;
+line-height: 24px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 84px;
+height: 15px;
+left: 215px;
+top: 29px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 14px;
+line-height: 21px;
+text-align: right;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 66px;
+height: 15px;
+left: 60px;
+top: 29px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+
+/* Text/100 */
+color: #FFFFFF;
+
+opacity: 0.6;
+
+
+/* icon */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 0px;
+top: 0px;
+
+
+
+/* Rectangle 558 */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 0px;
+top: 0px;
+
+/* Background Color/1 */
+background: #31353F;
+border-radius: 8px;
+
+
+/* Icon/ethereum-(eth) */
+
+position: absolute;
+width: 24px;
+height: 24px;
+left: 10px;
+top: 10px;
+
+
+
+/* BG 121 */
+
+position: absolute;
+left: 3.34%;
+right: 88.63%;
+top: 22.73%;
+bottom: 22.73%;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 5.57%;
+right: 90.85%;
+top: 55.21%;
+bottom: 27.82%;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+
+/* Vector */
+
+position: absolute;
+left: 6.14%;
+right: 91.44%;
+top: 43.71%;
+bottom: 45.68%;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+
+/* Vector */
+
+position: absolute;
+left: 7.63%;
+right: 90.49%;
+top: 28.76%;
+bottom: 51.95%;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+
+/* Vector */
+
+position: absolute;
+left: 5.2%;
+right: 92.93%;
+top: 28.78%;
+bottom: 51.65%;
+
+/* Main/Linear */
+background: #3A6FF8;
+
+
+/* Vector */
+
+position: absolute;
+left: 3.34%;
+right: 88.63%;
+top: 22.73%;
+bottom: 22.73%;
+
+opacity: 0;
+
+
+/* row */
+
+position: absolute;
+width: 299px;
+height: 44px;
+left: 31px;
+top: 154px;
+
+
+
+/* -6.00% */
+
+position: absolute;
+width: 43px;
+height: 24px;
+left: 256px;
+top: 0px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 24px;
+/* identical to box height, or 200% */
+display: flex;
+align-items: center;
+text-align: right;
+
+/* Sec/100 */
+color: #F46D22;
+
+
+
+/* text */
+
+position: absolute;
+width: 55px;
+height: 24px;
+left: 60px;
+top: 0px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 16px;
+line-height: 24px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 84px;
+height: 15px;
+left: 215px;
+top: 29px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 14px;
+line-height: 21px;
+text-align: right;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 66px;
+height: 15px;
+left: 60px;
+top: 29px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+
+/* Text/100 */
+color: #FFFFFF;
+
+opacity: 0.6;
+
+
+/* icon */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 0px;
+top: 0px;
+
+
+
+/* Rectangle 558 */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 0px;
+top: 0px;
+
+/* Background Color/1 */
+background: #31353F;
+border-radius: 8px;
+
+
+/* Icon/bitcoin-(btc) */
+
+position: absolute;
+width: 24px;
+height: 24px;
+left: 10px;
+top: 10px;
+
+
+
+/* BG 203 */
+
+position: absolute;
+left: 3.34%;
+right: 88.63%;
+top: 22.73%;
+bottom: 22.73%;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 6.53%;
+right: 91.07%;
+top: 51.7%;
+bottom: 41.86%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 4.01%;
+right: 89.3%;
+top: 27.27%;
+bottom: 27.27%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 6.53%;
+right: 91.43%;
+top: 41.84%;
+bottom: 51.73%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 3.34%;
+right: 88.63%;
+top: 22.73%;
+bottom: 22.73%;
+
+opacity: 0;
+
+
+/* row */
+
+position: absolute;
+width: 299px;
+height: 44px;
+left: 31px;
+top: 222px;
+
+
+
+/* +14.25% */
+
+position: absolute;
+width: 48px;
+height: 24px;
+left: 251px;
+top: 0px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 24px;
+/* identical to box height, or 200% */
+display: flex;
+align-items: center;
+
+/* Secondary/100 */
+color: #1ECB4F;
+
+
+
+/* text */
+
+position: absolute;
+width: 62px;
+height: 24px;
+left: 60px;
+top: 0px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 16px;
+line-height: 24px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 84px;
+height: 15px;
+left: 215px;
+top: 29px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 14px;
+line-height: 21px;
+text-align: right;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 66px;
+height: 15px;
+left: 60px;
+top: 29px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+
+/* Text/100 */
+color: #FFFFFF;
+
+opacity: 0.6;
+
+
+/* icon */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 0px;
+top: 0px;
+
+
+
+/* Rectangle 558 */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 0px;
+top: 0px;
+
+/* Background Color/1 */
+background: #31353F;
+border-radius: 8px;
+
+
+/* Icon/litecoin(ltc) */
+
+position: absolute;
+width: 24px;
+height: 24px;
+left: 10px;
+top: 10px;
+
+
+
+/* BG 149 */
+
+position: absolute;
+left: 3.34%;
+right: 88.63%;
+top: 22.73%;
+bottom: 22.73%;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 4.01%;
+right: 89.3%;
+top: 27.27%;
+bottom: 27.27%;
+
+/* Main/100 */
+background: #64CFF9;
+
+
+/* Vector */
+
+position: absolute;
+left: 3.34%;
+right: 88.63%;
+top: 22.73%;
+bottom: 22.73%;
+
+opacity: 0;
+
+
+/* row */
+
+position: absolute;
+width: 299px;
+height: 44px;
+left: 31px;
+top: 290px;
+
+
+
+/* -2.00% */
+
+position: absolute;
+width: 42px;
+height: 24px;
+left: 257px;
+top: 0px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 24px;
+/* identical to box height, or 200% */
+display: flex;
+align-items: center;
+text-align: right;
+
+/* Sec/100 */
+color: #F46D22;
+
+
+
+/* text */
+
+position: absolute;
+width: 57px;
+height: 24px;
+left: 60px;
+top: 0px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 16px;
+line-height: 24px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 84px;
+height: 15px;
+left: 215px;
+top: 29px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 14px;
+line-height: 21px;
+text-align: right;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 66px;
+height: 15px;
+left: 60px;
+top: 29px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+
+/* Text/100 */
+color: #FFFFFF;
+
+opacity: 0.6;
+
+
+/* icon */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 0px;
+top: 0px;
+
+
+
+/* Rectangle 558 */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 0px;
+top: 0px;
+
+/* Background Color/1 */
+background: #31353F;
+border-radius: 8px;
+
+
+/* Icon/solana-(sol) */
+
+position: absolute;
+width: 24px;
+height: 24px;
+left: 10px;
+top: 10px;
+
+
+
+/* BG 198 */
+
+position: absolute;
+left: 3.34%;
+right: 88.63%;
+top: 22.73%;
+bottom: 22.73%;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 4.35%;
+right: 89.63%;
+top: 30.68%;
+bottom: 60.23%;
+
+/* Secondary/100 */
+background: #1ECB4F;
+
+
+/* Vector */
+
+position: absolute;
+left: 4.35%;
+right: 89.63%;
+top: 45.45%;
+bottom: 45.45%;
+
+/* Secondary/100 */
+background: #1ECB4F;
+
+
+/* Vector */
+
+position: absolute;
+left: 4.35%;
+right: 89.63%;
+top: 60.23%;
+bottom: 30.68%;
+
+/* Secondary/100 */
+background: #1ECB4F;
+
+
+/* Vector */
+
+position: absolute;
+left: 3.34%;
+right: 88.63%;
+top: 22.73%;
+bottom: 22.73%;
+
+opacity: 0;
+
+
+/* row */
+
+position: absolute;
+width: 299px;
+height: 44px;
+left: 31px;
+top: 358px;
+
+
+
+/* +12.00% */
+
+position: absolute;
+width: 48px;
+height: 24px;
+left: 251px;
+top: 0px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 24px;
+/* identical to box height, or 200% */
+display: flex;
+align-items: center;
+text-align: right;
+
+/* Secondary/100 */
+color: #1ECB4F;
+
+
+
+/* text */
+
+position: absolute;
+width: 107px;
+height: 24px;
+left: 60px;
+top: 0px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 16px;
+line-height: 24px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 85px;
+height: 21px;
+left: 214px;
+top: 29px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+text-align: right;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* text */
+
+position: absolute;
+width: 66px;
+height: 15px;
+left: 60px;
+top: 29px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+
+/* Text/100 */
+color: #FFFFFF;
+
+opacity: 0.6;
+
+
+/* icon */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 0px;
+top: 0px;
+
+
+
+/* Rectangle 558 */
+
+position: absolute;
+width: 44px;
+height: 44px;
+left: 0px;
+top: 0px;
+
+/* Background Color/1 */
+background: #31353F;
+border-radius: 8px;
+
+
+/* Icon/binance-coin-(bnb) */
+
+position: absolute;
+width: 24px;
+height: 24px;
+left: 10px;
+top: 10px;
+
+
+
+/* BG 202 */
+
+position: absolute;
+left: 3.34%;
+right: 88.63%;
+top: 22.73%;
+bottom: 22.73%;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 5.42%;
+right: 90.7%;
+top: 27.74%;
+bottom: 55.02%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 5.42%;
+right: 90.7%;
+top: 55.02%;
+bottom: 27.74%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 9.26%;
+right: 89.37%;
+top: 45.36%;
+bottom: 45.36%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 4.08%;
+right: 94.55%;
+top: 45.36%;
+bottom: 45.36%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 6.6%;
+right: 91.88%;
+top: 44.84%;
+bottom: 44.82%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 3.34%;
+right: 88.63%;
+top: 22.73%;
+bottom: 22.73%;
+
+opacity: 0;
+
+
+/* Live Market */
+
+position: absolute;
+width: 738px;
+height: 173px;
+left: 670px;
+top: 823px;
+
+
+
+/* Rectangle 725 */
+
+position: absolute;
+width: 738px;
+height: 173px;
+left: 0px;
+top: 0px;
+
+/* Background Color/2 */
+background: #1B2028;
+border-radius: 15px;
+
+
+/* button */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 5px 10px;
+gap: 10px;
+
+position: absolute;
+width: 73px;
+height: 32px;
+left: 641px;
+top: 30px;
+
+/* Background Color/1 */
+border: 1px solid #31353F;
+border-radius: 5px;
+
+
+/* View More */
+
+width: 53px;
+height: 22px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 10px;
+line-height: 22px;
+/* identical to box height, or 220% */
+display: flex;
+align-items: center;
+text-align: center;
+
+/* Stroke */
+color: #E4E4E4;
+
+opacity: 0.6;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* row */
+
+position: absolute;
+width: 684px;
+height: 32px;
+left: 30px;
+top: 116px;
+
+
+
+/* value */
+
+position: absolute;
+width: 60px;
+height: 21px;
+left: 462px;
+top: 122px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+letter-spacing: 0.02em;
+
+/* Text/100 */
+color: #FFFFFF;
+
+opacity: 0.8;
+
+
+/* value */
+
+position: absolute;
+width: 61px;
+height: 21px;
+left: 329px;
+top: 122px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+letter-spacing: 0.02em;
+
+/* Text/100 */
+color: #FFFFFF;
+
+opacity: 0.8;
+
+
+/* date */
+
+position: absolute;
+width: 56px;
+height: 24px;
+left: 201px;
+top: 120px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 14px;
+line-height: 24px;
+/* identical to box height, or 171% */
+
+/* Secondary/100 */
+color: #1ECB4F;
+
+opacity: 0.8;
+
+
+/* date */
+
+position: absolute;
+width: 104px;
+height: 21px;
+left: 72px;
+top: 122px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 500;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+letter-spacing: 0.02em;
+
+/* Text/100 */
+color: #FFFFFF;
+
+opacity: 0.8;
+
+
+/* value */
+
+position: absolute;
+width: 80px;
+height: 21px;
+left: 588px;
+top: 122px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height */
+letter-spacing: 0.02em;
+
+/* Text/100 */
+color: #FFFFFF;
+
+opacity: 0.8;
+
+
+/* Icon/bitcoin-(btc) */
+
+position: absolute;
+width: 32px;
+height: 32px;
+left: 30px;
+top: 116px;
+
+
+
+/* BG 203 */
+
+position: absolute;
+left: 4.07%;
+right: 91.6%;
+top: 67.05%;
+bottom: 14.45%;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 5.79%;
+right: 92.92%;
+top: 76.88%;
+bottom: 20.94%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 4.43%;
+right: 91.96%;
+top: 68.59%;
+bottom: 15.99%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 5.79%;
+right: 93.11%;
+top: 73.53%;
+bottom: 24.28%;
+
+/* Secondary/100 */
+background: #FFC01E;
+
+
+/* Vector */
+
+position: absolute;
+left: 4.07%;
+right: 91.6%;
+top: 67.05%;
+bottom: 14.45%;
+
+opacity: 0;
+
+
+/* Icon/more */
+
+position: absolute;
+width: 24px;
+height: 24px;
+left: 690px;
+top: 120px;
+
+transform: rotate(-90deg);
+
+
+/* Vector */
+
+position: absolute;
+left: 93.5%;
+right: 3.25%;
+top: 69.36%;
+bottom: 16.76%;
+
+/* Text/100 */
+background: #FFFFFF;
+opacity: 0;
+transform: rotate(-90deg);
+
+
+/* Vector */
+
+position: absolute;
+left: 93.8%;
+right: 5.45%;
+top: 74.71%;
+bottom: 22.11%;
+
+/* Text/100 */
+background: #FFFFFF;
+
+
+/* Vector */
+
+position: absolute;
+left: 95.7%;
+right: 3.56%;
+top: 74.71%;
+bottom: 22.11%;
+
+/* Text/100 */
+background: #FFFFFF;
+
+
+/* Vector */
+
+position: absolute;
+left: 94.75%;
+right: 4.51%;
+top: 74.71%;
+bottom: 22.11%;
+
+/* Text/100 */
+background: #FFFFFF;
+
+
+/* Heading */
+
+position: absolute;
+width: 121px;
+height: 32px;
+left: 30px;
+top: 30px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 600;
+font-size: 21px;
+line-height: 32px;
+/* identical to box height */
+display: flex;
+align-items: center;
+
+/* Text/100 */
+color: #FFFFFF;
+
+
+
+/* table heading */
+
+position: absolute;
+width: 608px;
+height: 18px;
+left: 33px;
+top: 82px;
+
+
+
+/* text */
+
+position: absolute;
+width: 74px;
+height: 18px;
+left: 329px;
+top: 82px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+
+/* text */
+
+position: absolute;
+width: 70px;
+height: 18px;
+left: 203px;
+top: 82px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+
+/* text */
+
+position: absolute;
+width: 53px;
+height: 18px;
+left: 588px;
+top: 82px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+
+/* text */
+
+position: absolute;
+width: 72px;
+height: 18px;
+left: 465px;
+top: 82px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+
+/* Text/10 */
+color: #9E9E9E;
+
+
+
+/* text */
+
+position: absolute;
+width: 58px;
+height: 18px;
+left: 33px;
+top: 82px;
+
+font-family: 'Poppins';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height */
+
+/* Text/10 */
+color: #9E9E9E;
