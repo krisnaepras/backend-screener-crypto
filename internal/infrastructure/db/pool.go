@@ -92,16 +92,16 @@ func NewPool(ctx context.Context, databaseURL string, cfg PoolConfig) (*pgxpool.
 
 		ips, err := net.DefaultResolver.LookupIPAddr(ctx, lookupHost)
 		if err != nil {
-			// If DNS resolution fails but we have a hostname, try forcing IPv4 resolution.
-			if lookupHost != host {
-				return (&net.Dialer{}).DialContext(ctx, "tcp4", net.JoinHostPort(lookupHost, strconv.Itoa(port)))
-			}
 			return (&net.Dialer{}).DialContext(ctx, network, addr)
 		}
 
+		hasIPv6 := false
 		var lastErr error
 		for _, ip := range ips {
 			if ip.IP == nil || ip.IP.To4() == nil {
+				if ip.IP != nil && ip.IP.To16() != nil {
+					hasIPv6 = true
+				}
 				continue
 			}
 			candidate := net.JoinHostPort(ip.IP.String(), strconv.Itoa(port))
@@ -115,10 +115,8 @@ func NewPool(ctx context.Context, databaseURL string, cfg PoolConfig) (*pgxpool.
 		if lastErr != nil {
 			return nil, lastErr
 		}
-		// No IPv4 addresses found.
-		// If we switched to the hostname, attempt a tcp4 dial as a final chance.
-		if lookupHost != host {
-			return (&net.Dialer{}).DialContext(ctx, "tcp4", net.JoinHostPort(lookupHost, strconv.Itoa(port)))
+		if hasIPv6 {
+			return nil, errors.New("database host resolves to IPv6 only; Heroku typically has no IPv6 egress. Use Supabase 'Connection Pooling' host (pooler) that provides IPv4")
 		}
 
 		return nil, errors.New("no IPv4 addresses resolved for database host")
