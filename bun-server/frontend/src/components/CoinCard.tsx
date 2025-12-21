@@ -60,6 +60,41 @@ export const CoinCard = ({ coin }: Props) => {
                 </div>
             </div>
 
+            {/* ACTIVE TRADE INDICATOR */}
+            {coin.tradeActive && coin.currentPnL !== undefined && (
+                <div className="mb-4 p-3 rounded-xl bg-black/40 border border-white/10 backdrop-blur-md relative overflow-hidden">
+                    <div className="flex justify-between items-center relative z-10">
+                        <div>
+                            <p className="text-[10px] text-text-muted uppercase tracking-wider font-bold">Live PnL (50x)</p>
+                            <p className={clsx(
+                                "text-lg font-mono font-bold tracking-tighter",
+                                coin.currentPnL >= 0 ? "text-secondary" : "text-danger"
+                            )}>
+                                {coin.currentPnL > 0 ? "+" : ""}{coin.currentPnL.toFixed(2)}%
+                            </p>
+                        </div>
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (confirm(`Force Close ${coin.symbol}?`)) {
+                                    fetch(`/api/trade/close/${coin.symbol}`, { method: "POST" });
+                                }
+                            }}
+                            className="bg-danger/20 hover:bg-danger text-danger hover:text-white p-2 rounded-lg transition-all group/btn"
+                            title="Force Close Position"
+                        >
+                            <div className="w-4 h-4 rounded-sm border-2 border-current group-hover/btn:scale-90 transition-transform" />
+                        </button>
+                    </div>
+                    {/* Background Pulse */}
+                    <div className={clsx(
+                        "absolute inset-0 opacity-10 animate-pulse",
+                        coin.currentPnL >= 0 ? "bg-secondary" : "bg-danger"
+                    )} />
+                </div>
+            )}
+
             {/* Key Metrics */}
             {f && (
                 <div className="grid grid-cols-2 gap-3 mb-4">

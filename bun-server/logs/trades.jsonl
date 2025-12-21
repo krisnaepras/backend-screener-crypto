@@ -1,3 +1,4 @@
 {"id":"e48e906f-4574-4da8-8fa2-d12d90363a63","symbol":"RAVEUSDT","entryPrice":0.46282,"exitPrice":0.44886,"pnl":150.81457153969177,"startTime":1766304520926,"endTime":1766304763082,"exitReason":"Take Profit (>3%)"}
 {"id":"ac033b88-825a-451d-821c-714276d4eb80","symbol":"4USDT","entryPrice":0.02559,"exitPrice":0.02582,"pnl":-44.939429464634145,"startTime":1766305066217,"endTime":1766305105153,"exitReason":"Stop Loss"}
 {"id":"9e441f51-9ecb-48eb-ae44-7b2e5a0da709","symbol":"4USDT","entryPrice":0.02561,"exitPrice":0.02484,"pnl":150.3319016009371,"startTime":1766305139140,"endTime":1766305220220,"exitReason":"Take Profit (>3%)"}
+{"id":"9b3d5558-5064-48a3-b38a-d67d59e1d1e2","symbol":"NIGHTUSDT","entryPrice":0.0951,"exitPrice":0.09254,"pnl":134.5951629863305,"startTime":1766306713796,"endTime":1766306946990,"exitReason":"Scalp Exit (Support at EMA21 + Bounce)"}

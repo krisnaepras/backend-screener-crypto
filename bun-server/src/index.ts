@@ -76,6 +76,15 @@ const app = new Elysia()
         const data = await screener.analyzeOnDemand(s);
         return data || { error: "Analysis failed or data insufficient" };
     })
+    .post("/api/trade/close/:symbol", async ({ params: { symbol } }) => {
+        const success = await screener.manualCloseTrade(symbol.toUpperCase());
+        return { success };
+    }, {
+        detail: {
+            summary: "Manual Close Trade",
+            description: "Forces a trade to close immediately."
+        }
+    })
     .listen(8181);
 
 console.log(`🦊 Server running at http://localhost:8181`);
@@ -86,4 +95,4 @@ setInterval(() => {
     if (app.server) {
         app.server.publish("updates", JSON.stringify({ type: "update", data: screener.coins }));
     }
-}, 5000);
+}, 1000);

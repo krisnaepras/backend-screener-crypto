@@ -33,4 +33,16 @@ export interface CoinData {
     tradeActive?: boolean;
     tradeEntryPrice?: number;
     tradeStartTime?: number;
+    currentPnL?: number;
+}
+
+export interface TradeLog {
+    id: string;
+    symbol: string;
+    entryPrice: number;
+    exitPrice: number;
+    pnl: number;
+    startTime: number;
+    endTime: number;
+    exitReason: string;
 }

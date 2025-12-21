@@ -43,6 +43,7 @@ export interface CoinData {
     tradeActive: boolean;
     tradeEntryPrice?: number;
     tradeStartTime?: number;
+    currentPnL?: number; // Live PnL (50x)
 }
 
 export interface TradeLog {

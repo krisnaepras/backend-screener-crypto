@@ -89,6 +89,37 @@ export class ScreenerService {
         setInterval(() => this.runActiveMonitor(), ACTIVE_SCAN_INTERVAL);
     }
 
+    async manualCloseTrade(symbol: string): Promise<boolean> {
+        const coin = this.coins.find(c => c.symbol === symbol);
+        if (!coin || !coin.tradeActive) return false;
+
+        // Force close logic by analyzing with special flag / just rewriting state?
+        // Simpler: Just log it and clear state directly.
+        const exitPrice = coin.price;
+        const entryPrice = coin.tradeEntryPrice!;
+        const pnlRaw = (entryPrice - exitPrice) / entryPrice;
+        const pnlLeverage = pnlRaw * 100 * 50;
+
+        await this.logTrade({
+            id: crypto.randomUUID(),
+            symbol,
+            entryPrice,
+            exitPrice,
+            pnl: pnlLeverage,
+            startTime: coin.tradeStartTime!,
+            endTime: Date.now(),
+            exitReason: "Manual Close (User)"
+        });
+
+        coin.tradeActive = false;
+        coin.tradeEntryPrice = undefined;
+        coin.tradeStartTime = undefined;
+        coin.currentPnL = undefined;
+        coin.status = "NORMAL";
+
+        return true;
+    }
+
     // --- LEVEL 0: WATCHTOWER (Cheap & Fast) ---
     private async runWatchtower() {
         const tickers = await this.binance.get24hTicker();
@@ -212,14 +243,16 @@ export class ScreenerService {
         const curEma21 = ema21[currentIdx];
         const realDistFromEma21 = ((curPrice - curEma21) / curEma21) * 100;
 
-        // A. Parabolic Check: Must be up > 3% in last 15 mins OR > 5% in last 60 mins OR > 2% from EMA21
+        // A. Parabolic Check: Must be vertial pump. 
+        // 4% in 60m is just a strong trend. We want PUMPS.
         const price15mAgo = prices[currentIdx - 15] || prices[0];
         const pump15m = ((prices[currentIdx] - price15mAgo) / price15mAgo) * 100;
 
         const price60mAgo = prices[currentIdx - 60] || prices[0];
         const pump60m = ((prices[currentIdx] - price60mAgo) / price60mAgo) * 100;
 
-        const isParabolic = pump15m > 2.5 || pump60m > 4.0 || realDistFromEma21 > 2.0;
+        // Thresholds: 4% in 15m OR 10% in 60m OR 2.5% Extended from EMA
+        const isParabolic = pump15m > 4.0 || pump60m > 10.0 || realDistFromEma21 > 2.5;
 
         // B. Structure Break (Micro): Look for a Lower High after a High
         // Simplified: Price is now BELOW the EMA21 after being ABOVE it,
@@ -368,51 +401,46 @@ export class ScreenerService {
                 const pnlRaw = (tradeEntryPrice! - curPrice) / tradeEntryPrice!;
                 const pnlPct = pnlRaw * 100;
 
-                // 1. Hard Take Profit (Jackpot)
-                const isJackpot = pnlPct > 3.0;
+                // 1. Dynamic Take Profit (Runners vs Rejection)
+                let shouldTakeProfit = false;
+                let reason = "";
 
-                // 2. Mean Reversion Logic (Smart Exit)
-                const isTouchingEma = curPrice <= curEma21;
-                let isMeanReverted = false;
+                // Scenario A: Jackpot Territory (> 3%)
+                if (pnlPct > 3.0) {
+                    // Check if we should HOLD for more (Greed Mode)
+                    const isDumping = volSpike > 2.0 && curPrice < opens[currentIdx];
+                    if (!isDumping) {
+                        shouldTakeProfit = true;
+                        reason = `Take Profit (Target Hit > 3% & Momentum Slowed)`;
+                    }
+                }
+                // Scenario B: Moderate Profit (> 1%) but hitting Support (EMA21)
+                else if (pnlPct > 1.0) {
+                    const distRaw = Math.abs((curPrice - curEma21) / curEma21) * 100;
+                    const isAtSupport = distRaw < 0.5; // Within 0.5% of EMA
+                    const isBouncing = curPrice > opens[currentIdx]; // Green Candle
 
-                if (isTouchingEma) {
-                    // "Naive" check: Just touch? Or Strong Momentum?
-                    // Research: Top Trader L/S Ratio < 1.0 means Smart Money is Net Short.
-                    // If Ratio < 0.8, Smart Money is betting on more dump. HOLD.
-                    // If Ratio > 1.2, Smart Money is Long (Buying Dip). EXIT.
-                    const isSmartMoneyShort = longShortRatio < 0.8 && longShortRatio > 0; // Ensure not 0
-
-                    // If Selling Volume is HUGE (> 3x) and candle is red, momentum is strong. HOLD.
-                    const isStrongMomentum = volSpike > 3.0 && (curPrice < opens[currentIdx]);
-
-                    if (isSmartMoneyShort || isStrongMomentum) {
-                        // GREED MODE: Don't exit yet.
-                        // But protect capital: Tighten Stop Loss to Entry (Breakeven) if not already
-                        // Note: We handled "status" below, logic handles holding naturally.
-                        isMeanReverted = false;
-                    } else {
-                        // Normal bounce at EMA21 likely. Take profit.
-                        isMeanReverted = true;
+                    if (isAtSupport && isBouncing) {
+                        shouldTakeProfit = true;
+                        reason = `Scalp Exit (Support at EMA21 + Bounce)`;
                     }
                 }
 
-                // 3. Stop Loss: Price goes > 0.8% ABOVE Entry (Tight Stop)
+                // 3. Stop Loss
                 const stopLossHit = pnlPct < -0.8;
 
-                // 4. Trailing/Structure Exit: Price closes back ABOVE EMA21 (after being below)
-                // Only triggers if we are actually in profit to avoid instant close on chop
-                const trendReversalFail = curPrice > curEma21 && curPrice > tradeEntryPrice! && pnlPct > 0.2;
+                // 4. Trend Reversal Exit
+                const trendReversalFail = curPrice > curEma21 && curPrice > tradeEntryPrice! && pnlPct > 0.1;
 
-                if (isJackpot || (isMeanReverted && pnlPct > 0.5) || stopLossHit || trendReversalFail) {
+                if (shouldTakeProfit || stopLossHit || trendReversalFail) {
                     // EXIT TRADE
                     const exitPrice = curPrice;
                     const pnlLeverage = pnlPct * 50; // 50x
 
-                    let reason = "Unknown";
-                    if (isJackpot) reason = "Take Profit (>3%)";
-                    else if (stopLossHit) reason = "Stop Loss";
-                    else if (isMeanReverted) reason = "Mean Reversion (Touch EMA21 - Low Momentum)";
-                    else if (trendReversalFail) reason = "Trend Reversal";
+                    if (!reason) { // Fallback reasons
+                        if (stopLossHit) reason = "Stop Loss";
+                        else if (trendReversalFail) reason = "Trend Reversal";
+                    }
 
                     this.logTrade({
                         id: crypto.randomUUID(),
