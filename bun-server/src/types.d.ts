@@ -23,6 +23,7 @@ export interface MarketFeatures {
     openInterest: number;
     isOIDivergence: boolean; // Price Up + OI Down
     fundingRate: number;
+    longShortRatio: number; // Top Traders Long/Short Ratio
 }
 
 export interface CoinData {

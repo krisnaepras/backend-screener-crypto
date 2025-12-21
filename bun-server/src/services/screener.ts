@@ -1,13 +1,14 @@
 import { CoinData, MarketFeatures } from "../types.d";
-import { BinanceService } from "./binance";
+import { BinanceService, Ticker24h } from "./binance";
 import { Indicators } from "../utils/indicators";
 import { join } from "path";
-import { appendFile, readFile } from "fs/promises";
+import { appendFile, readFile, mkdir } from "fs/promises";
 
 // Configuration
 const WATCHTOWER_INTERVAL = 10 * 1000; // 10 seconds
 const DEEP_SCAN_INTERVAL = 2 * 1000; // 2 seconds (process queue faster)
 const DEEP_SCAN_BATCH_SIZE = 3; // Process 3 coins per tick
+const ACTIVE_SCAN_INTERVAL = 1000; // 1 second (High Frequency for Active Signals)
 
 export class ScreenerService {
     public coins: CoinData[] = [];
@@ -20,19 +21,27 @@ export class ScreenerService {
     // Cache for last price to detect sudden moves
     private lastPrices: Map<string, number> = new Map();
 
+    // Cache for 24h stats to avoid re-fetching
+    private tickerCache: Map<string, Ticker24h> = new Map();
+
     constructor() {
         this.binance = new BinanceService();
         this.ensureLogDir();
     }
 
     private async ensureLogDir() {
-        // Ensure logs directory exists (optional, Bun usually handles write well, but good practice)
-        // Ignoring for now, assuming write will work or throw.
+        // Robust logging setup with mkdir recursive
+        try {
+            const logPath = join(process.cwd(), "logs");
+            await mkdir(logPath, { recursive: true });
+        } catch (e) {
+            // Ignore if exists
+        }
     }
 
     async getTradeLogs(): Promise<any[]> {
         try {
-            const path = join(process.cwd(), "trades.jsonl");
+            const path = join(process.cwd(), "logs", "trades.jsonl");
             const content = await readFile(path, "utf-8");
             return content.trim().split("\n").map(line => JSON.parse(line)).reverse();
         } catch (e) {
@@ -52,11 +61,13 @@ export class ScreenerService {
 
         // 2. Loop Deep Scan (Processor)
         setInterval(() => this.processQueue(), DEEP_SCAN_INTERVAL);
+
+        // 3. Loop High Frequency Monitor (Active Signals)
+        setInterval(() => this.runActiveMonitor(), ACTIVE_SCAN_INTERVAL);
     }
 
     // --- LEVEL 0: WATCHTOWER (Cheap & Fast) ---
     private async runWatchtower() {
-        // console.log("[Watchtower] Scanning market...");
         const tickers = await this.binance.get24hTicker();
 
         let added = 0;
@@ -64,6 +75,9 @@ export class ScreenerService {
             const symbol = t.symbol;
             // Filter: Must be USDT Perpetual
             if (!symbol.endsWith("USDT")) return;
+
+            // Update Cache
+            this.tickerCache.set(symbol, t);
 
             const price = parseFloat(t.lastPrice);
             const change24h = parseFloat(t.priceChangePercent);
@@ -90,8 +104,23 @@ export class ScreenerService {
                 }
             }
         });
+    }
 
-        // console.log(`[Watchtower] Added ${added} coins to Deep Scan Queue. Total in Queue: ${this.priorityQueue.size}`);
+    // --- LEVEL 1.5: ACTIVE MONITOR (High Frequency) ---
+    private async runActiveMonitor() {
+        // Filter for coins that are interesting (Status TRIGGER/SETUP or Active Trade)
+        const activeCoins = this.coins.filter(c =>
+            c.status === "TRIGGER" ||
+            c.status === "SETUP" ||
+            c.tradeActive
+        );
+
+        if (activeCoins.length === 0) return;
+
+        // Process all active coins immediately (1s interval)
+        // Using map without Promise.all to avoid blocking the interval if API slightly lags, 
+        // but robust enough for Bun.
+        activeCoins.forEach(c => this.analyzeSymbol(c.symbol));
     }
 
     // --- LEVEL 1: DEEP SCAN (Robust Logic) ---
@@ -108,8 +137,6 @@ export class ScreenerService {
             this.priorityQueue.delete(next.value); // Remove from queue
         }
 
-        // console.log(`[DeepScan] Processing: ${batch.join(", ")}`);
-
         await Promise.all(batch.map(s => this.analyzeSymbol(s)));
     }
 
@@ -120,32 +147,70 @@ export class ScreenerService {
 
         const openInterest = await this.binance.getOpenInterest(symbol);
         const fundingRate = await this.binance.getFundingRate(symbol);
+        const longShortRatio = await this.binance.getTopLongShortAccountRatio(symbol);
 
-        // 2. Calculate Indicators
+        // Fetch 24h Stats from Cache
+        const ticker = this.tickerCache.get(symbol);
+        const change24h = ticker ? parseFloat(ticker.priceChangePercent) : 0;
+
+        // 2. Prepare Data
         const prices = klines.prices;
-        const closes = prices;
-
-        const ema21 = Indicators.calculateEMA(closes, 21);
-        const ema50 = Indicators.calculateEMA(closes, 50);
-        const ema100 = Indicators.calculateEMA(closes, 100);
-        const ema200 = Indicators.calculateEMA(closes, 200);
-        const rsi = Indicators.calculateRSI(closes, 14);
-        const bb = Indicators.calculateBollingerBands(closes, 20, 2.0);
-
-        // 3. Advanced Detection
+        const opens = klines.opens;
+        const highs = klines.highs;
+        const lows = klines.lows;
+        const volumes = klines.volumes;
         const currentIdx = prices.length - 1;
+
+        // 3. Calculate Indicators
+        const ema21 = Indicators.calculateEMA(prices, 21);
+        const ema50 = Indicators.calculateEMA(prices, 50);
+        const ema100 = Indicators.calculateEMA(prices, 100);
+        const ema200 = Indicators.calculateEMA(prices, 200);
+
+        const rsi = Indicators.calculateRSI(prices, 14);
+        const stoch = Indicators.calculateStochRSI(prices, 14, 3, 3);
+        const vwap = Indicators.calculateVWAP(highs, lows, prices, volumes);
+        const bb = Indicators.calculateBollingerBands(prices, 20, 2.0);
+
+        // 4. Pattern Recognition & Features
         const curPrice = prices[currentIdx];
         const curEma21 = ema21[currentIdx];
+        const curRsi = rsi[currentIdx];
 
-        // Reversal Logic
+        // A. Volume Analysis
+        const volExhaustion = Indicators.detectVolumeExhaustion(volumes, highs, lows, prices, opens);
+        const volSpike = volExhaustion.spikeRatio;
+
+        // B. Wick Rejection (> 40% upper wick)
+        const cOpen = opens[currentIdx];
+        const cClose = prices[currentIdx];
+        const cHigh = highs[currentIdx];
+        const cLow = lows[currentIdx];
+
+        const bodyTop = Math.max(cOpen, cClose);
+        const range = cHigh - cLow;
+        const upperWick = cHigh - bodyTop;
+        const wickRatio = range > 0 ? (upperWick / range) : 0;
+        const isWickRejection = wickRatio > 0.4;
+
+        // C. Bearish Engulfing
+        const prevOpen = opens[currentIdx - 1];
+        const prevClose = prices[currentIdx - 1];
+        const isBearishEngulfing = (prevClose > prevOpen) && // Prev Green
+            (cClose < cOpen) &&       // Curr Red
+            (cOpen >= prevClose) &&   // Open at/above prev close
+            (cClose <= prevOpen);     // Close at/below prev open
+
+        // D. Context Checks
+        const isOverboughtStoch = stoch.k[currentIdx] > 80 && stoch.d[currentIdx] > 80;
+        const isVWAPExtended = curPrice > vwap[currentIdx] * 1.01; // 1% extension
+        const isBollingerRejection = highs[currentIdx] > bb.upper[currentIdx] && curPrice < bb.upper[currentIdx];
+
+        // 5. Construct Features Object
         const isBearishDiv = Indicators.detectBearishDivergence(prices, rsi, 15);
-        const volExhaustion = Indicators.detectVolumeExhaustion(klines.volumes, klines.highs, klines.lows, klines.prices, klines.opens);
-        const isRejectionWick = Indicators.detectRejectionWick(klines.highs[currentIdx], klines.lows[currentIdx], klines.opens[currentIdx], klines.prices[currentIdx]);
-        const isBollingerRejection = klines.highs[currentIdx] > bb.upper[currentIdx] && curPrice < bb.upper[currentIdx]; // Touched upper but below now
 
-        // 4. Construct Features
         const features: MarketFeatures = {
-            pctChange24h: 0, // Placeholder, usually comes from ticker. But ok.
+            pctChange24h: change24h,
             currentPrice: curPrice,
             ema21: curEma21,
             ema50: ema50[currentIdx],
@@ -153,22 +218,44 @@ export class ScreenerService {
             ema200: ema200[currentIdx],
             isUptrend: curEma21 > ema50[currentIdx] && ema50[currentIdx] > ema100[currentIdx],
             distFromEma21: ((curPrice - curEma21) / curEma21) * 100,
-            rsi: rsi[currentIdx],
+            rsi: curRsi,
             isRsiBearishDiv: isBearishDiv,
             isBollingerRejection,
-            isRejectionWick,
-            volumeSpike: volExhaustion.spikeRatio,
+            isRejectionWick: isWickRejection,
+            volumeSpike: volSpike,
             isVolumeExhaustion: volExhaustion.isExhaustion,
             openInterest,
-            isOIDivergence: false, // Need history for this, skipping for now to safe complexity.
-            fundingRate
+            isOIDivergence: false,
+            fundingRate,
+            longShortRatio
         };
 
-        // 5. Scoring
-        const score = this.calculateReversalScore(features);
+        // 6. Scoring Logic (The "Gold" Logic)
+        let score = 0;
+
+        // Context (30pts)
+        if (curRsi > 70) score += 10;
+        if (isOverboughtStoch) score += 15;
+        if (isVWAPExtended) score += 15;
+
+        // Trigger (Price Action) (50pts)
+        if (isWickRejection) score += 20;
+        if (isBearishEngulfing) score += 25;
+        if (isBollingerRejection) score += 10;
+
+        // Volume (20pts)
+        if (volSpike > 3) score += 15;
+        else if (volSpike > 2) score += 10;
+
+        // Funding & Sentiment
+        if (fundingRate > 0.05) score += 5;
+        if (longShortRatio > 2.5) score += 10;
+        else if (longShortRatio > 1.5) score += 5;
+
+        score = Math.min(score, 100);
         let status = score >= 70 ? "TRIGGER" : score >= 50 ? "SETUP" : "WATCH";
 
-        // 6. Persistence & State Machine
+        // 7. Persistence & State Machine
         const existingIdx = this.coins.findIndex(c => c.symbol === symbol);
         const existingCoin = existingIdx !== -1 ? this.coins[existingIdx] : null;
 
@@ -179,9 +266,8 @@ export class ScreenerService {
         // STATE MACHINE
         if (tradeActive) {
             // Check Exit Conditions (Post-drop Exhaustion)
-            const isPriceRecovering = curPrice > ema21[currentIdx]; // Price broke above EMA21
-            const isOversold = rsi[currentIdx] < 30; // RSI oversold
-            const isCooldwn = score < 50; // Use score drop as backup
+            const isPriceRecovering = curPrice > curEma21; // Price broke above EMA21
+            const isOversold = curRsi < 30; // RSI oversold
 
             if (isPriceRecovering || isOversold) {
                 // EXIT TRADE
@@ -222,7 +308,7 @@ export class ScreenerService {
             price: curPrice,
             score,
             status,
-            priceChangePercent: 0,
+            priceChangePercent: change24h,
             fundingRate,
             features,
             lastUpdated: Date.now(),
@@ -237,37 +323,16 @@ export class ScreenerService {
             this.coins.push(coinData);
         }
 
-        // Clean up old coins (> 5 min no update)
-        // this.coins = this.coins.filter(c => Date.now() - c.lastUpdated < 5 * 60 * 1000);
         this.coins.sort((a, b) => b.score - a.score);
     }
 
     private async logTrade(log: any) {
-        const path = join(process.cwd(), "trades.jsonl");
-        await appendFile(path, JSON.stringify(log) + "\n");
-        console.log(`[TRADE CLOSED] ${log.symbol} PnL: ${log.pnl.toFixed(2)}%`);
-    }
-
-    private calculateReversalScore(f: MarketFeatures): number {
-        let s = 0;
-
-        // 1. Overextension (30 pts)
-        if (f.distFromEma21 > 3) s += 15; // Price flying away from EMA21
-        if (f.distFromEma21 > 5) s += 15;
-
-        // 2. Exhaustion (30 pts)
-        if (f.rsi > 70) s += 10;
-        if (f.isRsiBearishDiv) s += 20; // GOLD SIGNAL
-        if (f.isBollingerRejection) s += 10;
-
-        // 3. Volume/Stress (20 pts)
-        if (f.isVolumeExhaustion) s += 20; // GOLD SIGNAL
-        else if (f.volumeSpike > 3) s += 10;
-
-        // 4. Funding (20 pts)
-        if (f.fundingRate > 0.05) s += 10; // High
-        if (f.fundingRate > 0.1) s += 10; // Extreme
-
-        return Math.min(s, 100);
+        try {
+            const path = join(process.cwd(), "logs", "trades.jsonl");
+            await appendFile(path, JSON.stringify(log) + "\n");
+            console.log(`[TRADE CLOSED] ${log.symbol} PnL: ${log.pnl.toFixed(2)}%`);
+        } catch (e) {
+            console.error("Failed to log trade:", e);
+        }
     }
 }

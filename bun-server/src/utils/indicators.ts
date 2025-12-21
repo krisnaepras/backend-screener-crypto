@@ -181,5 +181,67 @@ export const Indicators = {
 
         const upperWick = high - Math.max(open, close);
         return (upperWick / range) > 0.5;
+    },
+
+    calculateVWAP(highs: number[], lows: number[], closes: number[], volumes: number[]): number[] {
+        const vwap: number[] = [];
+        let cumVol = 0;
+        let cumVolPrice = 0;
+
+        for (let i = 0; i < closes.length; i++) {
+            const typPrice = (highs[i] + lows[i] + closes[i]) / 3;
+            const vol = volumes[i];
+
+            // For a rolling VWAP (e.g., session based), we should typically reset.
+            // But for this simple screener, we'll use a rolling window or continuous accumulation.
+            // A common approximation for indicators without session data is an anchored VWAP or just rolling.
+            // Let's use a rolling window of recent history to simulate "recent session" relevance, or just simple accumulation if assuming start of array is start of session.
+            // Better: Just pure accumulation from start of array (assuming array is reasonably sized, e.g. 100-300 candles).
+
+            cumVol += vol;
+            cumVolPrice += typPrice * vol;
+
+            vwap.push(cumVolPrice / (cumVol || 1));
+        }
+        return vwap;
+    },
+
+    calculateStochRSI(closes: number[], period: number = 14, smoothK: number = 3, smoothD: number = 3): { k: number[], d: number[] } {
+        const rsi = this.calculateRSI(closes, period);
+        const stochRsi: number[] = [];
+
+        // Calculate StochRSI
+        for (let i = 0; i < rsi.length; i++) {
+            if (i < period) {
+                stochRsi.push(0);
+                continue;
+            }
+
+            const window = rsi.slice(i - period + 1, i + 1);
+            const min = Math.min(...window);
+            const max = Math.max(...window);
+
+            if (max === min) {
+                stochRsi.push(0);
+            } else {
+                stochRsi.push((rsi[i] - min) / (max - min)); // 0-1 range
+            }
+        }
+
+        // Smooth K
+        const k = this.calculateSMA(stochRsi, smoothK).map(v => v * 100); // 0-100
+        const d = this.calculateSMA(k, smoothD);
+
+        return { k, d };
+    },
+
+    calculateSMA(data: number[], period: number): number[] {
+        const sma = new Array(data.length).fill(0);
+        for (let i = period - 1; i < data.length; i++) {
+            let sum = 0;
+            for (let j = 0; j < period; j++) sum += data[i - j];
+            sma[i] = sum / period;
+        }
+        return sma;
     }
 };

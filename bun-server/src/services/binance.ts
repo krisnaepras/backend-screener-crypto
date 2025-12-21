@@ -1,7 +1,7 @@
 const FAPI_BASE_URL = "https://fapi.binance.com";
 const TIMEOUT_MS = 5000;
 
-interface Ticker24h {
+export interface Ticker24h {
     symbol: string;
     priceChangePercent: string;
     lastPrice: string;
@@ -100,6 +100,21 @@ export class BinanceService {
             const res = await this.fetchWithTimeout(`${this.baseUrl}/fapi/v1/premiumIndex?symbol=${symbol}`);
             const data = await res.json() as any;
             return parseFloat(data.lastFundingRate);
+        } catch (e) {
+            return 0;
+        }
+    }
+
+    // Weight 1 - Insightful
+    async getTopLongShortAccountRatio(symbol: string): Promise<number> {
+        try {
+            // Get last 5 mins ratio
+            const res = await this.fetchWithTimeout(`${this.baseUrl}/fapi/v1/topLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`);
+            const data = await res.json() as any[];
+            if (data && data.length > 0) {
+                return parseFloat(data[0].longShortRatio);
+            }
+            return 0;
         } catch (e) {
             return 0;
         }
