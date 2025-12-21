@@ -191,11 +191,6 @@ func (s *AutoScalpingService) hasActivePosition(symbol string) bool {
 }
 
 func (s *AutoScalpingService) shouldEnter(coin *domain.CoinData) bool {
-	// Must meet minimum score
-	if coin.Score < s.settings.MinEntryScore {
-		return false
-	}
-
 	// Must have features
 	if coin.Features == nil {
 		return false
@@ -203,36 +198,52 @@ func (s *AutoScalpingService) shouldEnter(coin *domain.CoinData) bool {
 
 	features := coin.Features
 
-	// SHORT entry criteria - very strict
-	// 1. RSI must be overbought (75+)
+	// PRIMARY FILTER: RSI must be overbought (75+) for SHORT
 	if features.RSI < 75 {
 		return false
 	}
 
-	// 2. Must have overextension (5%+)
-	if features.OverExtEma < 0.05 {
-		return false
+	// REVERSAL VALIDATION: Need at least 2 reversal signs
+	reversalSigns := 0
+
+	// 1. Rejection wick (upper wick > 50% of candle range)
+	if features.RejectionWick > 0.5 {
+		reversalSigns++
 	}
 
-	// 3. Price change must show pump (20%+)
-	if features.PctChange24h < 20 {
-		return false
-	}
-
-	// 4. Optional but preferred: Above upper BB or breakdown
-	strongSignals := 0
+	// 2. Above upper Bollinger Band (overextension)
 	if features.IsAboveUpperBand {
-		strongSignals++
-	}
-	if features.IsBreakdown {
-		strongSignals++
-	}
-	if features.FundingRate > 0.0005 {
-		strongSignals++
+		reversalSigns++
 	}
 
-	// Need at least 1 additional strong signal
-	return strongSignals >= 1
+	// 3. EMA overextension (3%+)
+	if features.OverExtEma >= 0.03 {
+		reversalSigns++
+	}
+
+	// 4. Breakdown signal (price rejecting higher level)
+	if features.IsBreakdown {
+		reversalSigns++
+	}
+
+	// 5. High funding rate (longs getting squeezed)
+	if features.FundingRate > 0.0003 {
+		reversalSigns++
+	}
+
+	// 6. Significant pump (15%+ in 24h suggests overheating)
+	if features.PctChange24h >= 15 {
+		reversalSigns++
+	}
+
+	// Need at least 2 reversal confirmation signs
+	if reversalSigns >= 2 {
+		log.Printf("🎯 Auto scalp entry candidate: %s | RSI: %.1f | Reversal signs: %d | Price: %.6f",
+			coin.Symbol, features.RSI, reversalSigns, coin.Price)
+		return true
+	}
+
+	return false
 }
 
 func (s *AutoScalpingService) openPosition(coin *domain.CoinData) {
