@@ -12,6 +12,10 @@ type InMemoryAutoScalpRepository struct {
 	mu      sync.RWMutex
 	entries map[string]*domain.AutoScalpEntry // Active entries
 	history []*domain.AutoScalpEntry          // Closed entries
+
+	lastEmergencyStopUser   string
+	lastEmergencyStopAt     time.Time
+	lastEmergencyStopReason string
 }
 
 // NewInMemoryAutoScalpRepository creates a new repository
@@ -97,5 +101,50 @@ func (r *InMemoryAutoScalpRepository) DeleteEntry(id string) error {
 	}
 
 	delete(r.entries, id)
+	return nil
+}
+
+// UpdateOrAttachBinanceOrders best-effort attaches Binance order metadata to the most recent active entry for a symbol.
+func (r *InMemoryAutoScalpRepository) UpdateOrAttachBinanceOrders(symbol string, entryOrderID int64, slOrderID int64, qty float64, leverage int, filledPrice float64) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	var selected *domain.AutoScalpEntry
+	for _, entry := range r.entries {
+		if entry.Symbol != symbol {
+			continue
+		}
+		if entry.Status != "ACTIVE" {
+			continue
+		}
+		if selected == nil || entry.EntryTime.After(selected.EntryTime) {
+			selected = entry
+		}
+	}
+
+	if selected == nil {
+		return fmt.Errorf("no active entry found for symbol %s", symbol)
+	}
+
+	selected.IsRealTrade = true
+	selected.Quantity = qty
+	selected.Leverage = leverage
+	if filledPrice > 0 {
+		selected.EntryPrice = filledPrice
+	}
+	selected.BinanceOrderID = &entryOrderID
+	selected.BinanceSLOrderID = &slOrderID
+
+	// Map holds pointers; entry updated in-place.
+	return nil
+}
+
+func (r *InMemoryAutoScalpRepository) RecordEmergencyStop(userID string, at time.Time, reason string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.lastEmergencyStopUser = userID
+	r.lastEmergencyStopAt = at
+	r.lastEmergencyStopReason = reason
 	return nil
 }

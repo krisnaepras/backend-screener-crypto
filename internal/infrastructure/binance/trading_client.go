@@ -22,6 +22,35 @@ type TradingClient struct {
 	httpClient *http.Client
 }
 
+// BinanceAPIError captures structured error info returned by Binance.
+type BinanceAPIError struct {
+	StatusCode int
+	Code       int    `json:"code"`
+	Message    string `json:"msg"`
+	Body       string
+}
+
+func (e *BinanceAPIError) Error() string {
+	if e == nil {
+		return "binance API error"
+	}
+	if e.Code != 0 || e.Message != "" {
+		return fmt.Sprintf("binance API error %d (code=%d): %s", e.StatusCode, e.Code, e.Message)
+	}
+	return fmt.Sprintf("binance API error %d: %s", e.StatusCode, e.Body)
+}
+
+func parseBinanceAPIError(statusCode int, body []byte) error {
+	var parsed struct {
+		Code int    `json:"code"`
+		Msg  string `json:"msg"`
+	}
+	if err := json.Unmarshal(body, &parsed); err == nil && (parsed.Code != 0 || parsed.Msg != "") {
+		return &BinanceAPIError{StatusCode: statusCode, Code: parsed.Code, Message: parsed.Msg, Body: string(body)}
+	}
+	return &BinanceAPIError{StatusCode: statusCode, Body: string(body)}
+}
+
 // NewTradingClient creates a new authenticated Binance client
 func NewTradingClient(apiKey, secretKey string, isTestnet bool) *TradingClient {
 	baseURL := FapiBaseURL
@@ -174,7 +203,7 @@ func (c *TradingClient) GetOpenOrders(symbol string) ([]map[string]interface{}, 
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("binance API error %d: %s", resp.StatusCode, string(body))
+		return nil, parseBinanceAPIError(resp.StatusCode, body)
 	}
 
 	var orders []map[string]interface{}
@@ -183,6 +212,80 @@ func (c *TradingClient) GetOpenOrders(symbol string) ([]map[string]interface{}, 
 	}
 
 	return orders, nil
+}
+
+// SetLeverage sets the leverage for a symbol (USDT-margined futures).
+func (c *TradingClient) SetLeverage(symbol string, leverage int) error {
+	endpoint := "/fapi/v1/leverage"
+
+	params := url.Values{}
+	params.Set("symbol", symbol)
+	params.Set("leverage", strconv.Itoa(leverage))
+
+	resp, err := c.signedRequest("POST", endpoint, params)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return parseBinanceAPIError(resp.StatusCode, body)
+	}
+
+	return nil
+}
+
+// PlaceStopLossOrder places a STOP_MARKET order with closePosition=true so the stop lives on Binance.
+// positionSide should be "SHORT", "LONG", or "BOTH" depending on the account mode.
+func (c *TradingClient) PlaceStopLossOrder(symbol string, _ float64, stopPrice float64, positionSide string) (int64, error) {
+	endpoint := "/fapi/v1/order"
+
+	side := "BUY"
+	if positionSide == "LONG" {
+		side = "SELL"
+	}
+
+	params := url.Values{}
+	params.Set("symbol", symbol)
+	params.Set("side", side)
+	params.Set("type", "STOP_MARKET")
+	params.Set("stopPrice", fmt.Sprintf("%.8f", stopPrice))
+	params.Set("closePosition", "true")
+	params.Set("workingType", "MARK_PRICE")
+	params.Set("priceProtect", "true")
+
+	if positionSide != "" {
+		params.Set("positionSide", positionSide)
+	}
+
+	resp, err := c.signedRequest("POST", endpoint, params)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return 0, parseBinanceAPIError(resp.StatusCode, body)
+	}
+
+	var binanceResp struct {
+		OrderID int64 `json:"orderId"`
+	}
+	if err := json.Unmarshal(body, &binanceResp); err != nil {
+		return 0, err
+	}
+
+	return binanceResp.OrderID, nil
 }
 
 // PlaceOrder places a new order
@@ -216,7 +319,7 @@ func (c *TradingClient) PlaceOrder(req *domain.BinanceOrderRequest) (*domain.Bin
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("binance API error %d: %s", resp.StatusCode, string(body))
+		return nil, parseBinanceAPIError(resp.StatusCode, body)
 	}
 
 	var binanceResp struct {
@@ -259,7 +362,7 @@ func (c *TradingClient) CancelOrder(symbol string, orderID int64) error {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("binance API error %d: %s", resp.StatusCode, string(body))
+		return parseBinanceAPIError(resp.StatusCode, body)
 	}
 
 	return nil

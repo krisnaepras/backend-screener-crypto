@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -8,24 +9,49 @@ import (
 
 	httphandler "screener-backend/internal/delivery/http"
 	"screener-backend/internal/delivery/websocket"
+	"screener-backend/internal/infrastructure/db"
 	"screener-backend/internal/infrastructure/fcm"
+	"screener-backend/internal/domain"
 	"screener-backend/internal/repository"
 	"screener-backend/internal/usecase"
 )
 
 func main() {
+	ctx := context.Background()
+
 	// 1. Initialize Repositories
 	repo := repository.NewInMemoryScreenerRepository()
 	tokenRepo := repository.NewTokenRepository()
 	tradeRepo := repository.NewInMemoryTradeRepository()
-	autoScalpRepo := repository.NewInMemoryAutoScalpRepository()
 	
 	// Initialize Binance API Repository with encryption key
 	encryptionKey := os.Getenv("API_ENCRYPTION_KEY")
 	if encryptionKey == "" {
 		encryptionKey = "default-key-change-in-production-32bytes"
 	}
-	binanceAPIRepo := repository.NewBinanceAPIRepository(encryptionKey)
+
+	var autoScalpRepo domain.AutoScalpRepository
+	var binanceAPIRepo domain.BinanceAPIStore
+
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		pool, err := db.NewPool(ctx, dbURL, db.DefaultPoolConfig())
+		if err != nil {
+			log.Fatalf("Failed to create DB pool: %v", err)
+		}
+		defer pool.Close()
+
+		if err := db.Migrate(ctx, pool); err != nil {
+			log.Fatalf("DB migrate failed: %v", err)
+		}
+		log.Println("✓ Postgres connected (pooled) and migrated")
+
+		autoScalpRepo = repository.NewPostgresAutoScalpRepository(pool)
+		binanceAPIRepo = repository.NewPostgresBinanceAPIRepository(pool, encryptionKey)
+	} else {
+		log.Println("⚠ DATABASE_URL not set; using in-memory storage")
+		autoScalpRepo = repository.NewInMemoryAutoScalpRepository()
+		binanceAPIRepo = repository.NewBinanceAPIRepository(encryptionKey)
+	}
 
 	// 2. Initialize FCM Client
 	fcmClient, err := fcm.NewClient()

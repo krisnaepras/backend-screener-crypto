@@ -6,16 +6,15 @@ import (
 	"net/http"
 	"screener-backend/internal/domain"
 	"screener-backend/internal/infrastructure/binance"
-	"screener-backend/internal/repository"
 )
 
 // BinanceAPIHandler handles Binance API management endpoints
 type BinanceAPIHandler struct {
-	repo *repository.BinanceAPIRepository
+	repo domain.BinanceAPIStore
 }
 
 // NewBinanceAPIHandler creates a new handler
-func NewBinanceAPIHandler(repo *repository.BinanceAPIRepository) *BinanceAPIHandler {
+func NewBinanceAPIHandler(repo domain.BinanceAPIStore) *BinanceAPIHandler {
 	return &BinanceAPIHandler{repo: repo}
 }
 

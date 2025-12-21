@@ -19,6 +19,13 @@ type AutoScalpEntry struct {
 	EntryScore       float64    `json:"entryScore"`
 	HighestPrice     float64    `json:"highestPrice"`     // Track highest since entry
 	TrailingStopPct  float64    `json:"trailingStopPct"`  // Dynamic trailing stop %
+	
+	// Binance Integration Fields
+	IsRealTrade      bool    `json:"isRealTrade"`              // Paper vs Real
+	BinanceOrderID   *int64  `json:"binanceOrderId,omitempty"` // Entry order ID
+	BinanceSLOrderID *int64  `json:"binanceSlOrderId,omitempty"` // Stop Loss order ID
+	Quantity         float64 `json:"quantity"`                 // Position size
+	Leverage         int     `json:"leverage"`                 // Leverage used
 }
 
 // AutoScalpSettings represents user settings for auto scalping
@@ -40,4 +47,8 @@ type AutoScalpRepository interface {
 	UpdateEntry(entry *AutoScalpEntry) error
 	GetHistory(fromTime time.Time) []*AutoScalpEntry
 	DeleteEntry(id string) error
+
+	// Binance integration helpers (best-effort for in-memory repo)
+	UpdateOrAttachBinanceOrders(symbol string, entryOrderID int64, slOrderID int64, qty float64, leverage int, filledPrice float64) error
+	RecordEmergencyStop(userID string, at time.Time, reason string) error
 }
