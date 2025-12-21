@@ -13,14 +13,16 @@ export class BinanceService {
     async getActiveSymbols(): Promise<string[]> {
         try {
             const res = await fetch(`${this.baseUrl}/fapi/v1/exchangeInfo`);
-            if (!res.ok) throw new Error(res.statusText);
+            if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
             const data = await res.json() as any;
 
             return (data.symbols as any[])
                 .filter(s => s.status === "TRADING" && s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
                 .map(s => s.symbol);
-        } catch (e) {
-            console.error("BinanceService: getActiveSymbols failed", e);
+        } catch (e: any) {
+            console.error(`[Binance] getActiveSymbols failed: ${e.message}`);
+            // Log more details if connection failed
+            if (e.cause) console.error("Cause:", e.cause);
             return [];
         }
     }
@@ -28,14 +30,14 @@ export class BinanceService {
     async get24hTicker(): Promise<Map<string, Ticker24h>> {
         try {
             const res = await fetch(`${this.baseUrl}/fapi/v1/ticker/24hr`);
-            if (!res.ok) throw new Error(res.statusText);
+            if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
             const data = await res.json() as Ticker24h[];
 
             const map = new Map<string, Ticker24h>();
             data.forEach(t => map.set(t.symbol, t));
             return map;
-        } catch (e) {
-            console.error("BinanceService: get24hTicker failed", e);
+        } catch (e: any) {
+            console.error(`[Binance] get24hTicker failed: ${e.message}`);
             return new Map();
         }
     }
@@ -43,7 +45,7 @@ export class BinanceService {
     async getKlines(symbol: string, limit = 100): Promise<{ prices: number[], highs: number[], lows: number[] }> {
         try {
             const res = await fetch(`${this.baseUrl}/fapi/v1/klines?symbol=${symbol}&interval=15m&limit=${limit}`);
-            if (!res.ok) throw new Error(res.statusText);
+            if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
             const raw = await res.json() as any[][];
 
             const prices: number[] = [];
@@ -57,8 +59,8 @@ export class BinanceService {
             });
 
             return { prices, highs, lows };
-        } catch (e) {
-            console.error(`BinanceService: getKlines failed for ${symbol}`, e);
+        } catch (e: any) {
+            console.error(`[Binance] getKlines failed for ${symbol}: ${e.message}`);
             return { prices: [], highs: [], lows: [] };
         }
     }
@@ -66,7 +68,7 @@ export class BinanceService {
     async getFundingRate(symbol: string): Promise<number> {
         try {
             const res = await fetch(`${this.baseUrl}/fapi/v1/premiumIndex?symbol=${symbol}`);
-            if (!res.ok) throw new Error(res.statusText);
+            if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
             const data = await res.json() as any;
             return parseFloat(data.lastFundingRate);
         } catch (e) {

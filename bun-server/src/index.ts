@@ -1,44 +1,58 @@
+import { Elysia } from "elysia";
+import { swagger } from "@elysiajs/swagger";
 import { ScreenerService } from "./services/screener";
 
+// Initialize Service
 const screener = new ScreenerService();
+
+// Start Background Loop
 screener.start();
 
-const server = Bun.serve({
-    port: parseInt(process.env.PORT || "8080"),
-    fetch(req, server) {
-        const url = new URL(req.url);
-
-        // WebSocket Upgrade
-        if (url.pathname === "/ws") {
-            const success = server.upgrade(req);
-            return success ? undefined : new Response("WS Upgrade Failed", { status: 500 });
+// Initialize Elysia App
+const app = new Elysia()
+    .use(swagger({
+        path: "/swagger",
+        documentation: {
+            info: {
+                title: "Crypto Screener API",
+                version: "1.0.0",
+                description: "Real-time Crypto Screener API with WebSocket support. Powered by Bun & Elysia."
+            }
         }
-
-        if (url.pathname === "/health") {
-            return Response.json({ status: "ok" });
+    }))
+    .get("/health", () => ({ status: "ok" }), {
+        detail: {
+            summary: "Health Check",
+            description: "Returns the health status of the server."
         }
-
-        if (url.pathname === "/api/coins") {
-            return Response.json(screener.coins);
+    })
+    .get("/api/coins", () => screener.coins, {
+        detail: {
+            summary: "Get Screened Coins",
+            description: "Returns the latest snapshot of all screened coins."
         }
-
-        return new Response("Not Found", { status: 404 });
-    },
-    websocket: {
+    })
+    .ws("/ws", {
         open(ws) {
-            // Send initial data
             ws.send(JSON.stringify({ type: "initial", data: screener.coins }));
             ws.subscribe("updates");
         },
-        message(ws, msg) {
-            // Handle messages if needed
+        message(ws, message) {
+            // Handle messages
+        },
+        detail: {
+            summary: "WebSocket Endpoint",
+            description: "Connect here for real-time updates."
         }
-    }
-});
+    })
+    .listen(process.env.PORT || 8080);
 
-console.log(`Server running at http://localhost:${server.port}`);
+console.log(`🦊 Server running at ${app.server?.hostname}:${app.server?.port}`);
+console.log(`📘 Swagger UI at http://${app.server?.hostname}:${app.server?.port}/swagger`);
 
 // Broadcast updates
 setInterval(() => {
-    server.publish("updates", JSON.stringify({ type: "update", data: screener.coins }));
+    if (app.server) {
+        app.server.publish("updates", JSON.stringify({ type: "update", data: screener.coins }));
+    }
 }, 5000);
