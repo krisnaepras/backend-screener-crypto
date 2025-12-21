@@ -63,6 +63,14 @@ const app = new Elysia()
             description: "Deletes logs by their IDs."
         }
     })
+    .get("/api/logs", async () => {
+        return await screener.getTradeLogs();
+    }, {
+        detail: {
+            summary: "Get Trade Logs",
+            description: "Returns the history of all closed trades."
+        }
+    })
     .get("/api/coin/:symbol", async ({ params: { symbol } }) => {
         const s = symbol.toUpperCase();
         const data = await screener.analyzeOnDemand(s);

@@ -242,6 +242,10 @@ export class ScreenerService {
         const rsi = Indicators.calculateRSI(prices, 14);
         const curRsi = rsi[currentIdx];
 
+        const stoch = Indicators.calculateStochRSI(prices, 14, 3, 3);
+        const curStochK = stoch.k[currentIdx];
+        const curStochD = stoch.d[currentIdx];
+
         const volExhaustion = Indicators.detectVolumeExhaustion(volumes, highs, lows, prices, opens);
         const volSpike = volExhaustion.spikeRatio;
 
@@ -255,11 +259,6 @@ export class ScreenerService {
         const upperWick = cHigh - bodyTop;
         const wickRatio = range > 0 ? (upperWick / range) : 0;
         const isWickRejection = wickRatio > 0.5; // Stricter: 50% wick
-
-        // D. Context Checks
-        // Note: stoch and vwap are not calculated in this snippet, assuming they exist or are placeholders.
-        // const isOverboughtStoch = stoch.k[currentIdx] > 80 && stoch.d[currentIdx] > 80;
-        // const isVWAPExtended = curPrice > vwap[currentIdx] * 1.01; // 1% extension
 
         // Bearish Engulfing
         const prevOpen = opens[currentIdx - 1];
@@ -277,6 +276,8 @@ export class ScreenerService {
             isUptrend: isParabolic,
             distFromEma21: realDistFromEma21, // Now storing actual distance
             rsi: curRsi,
+            stochK: curStochK,
+            stochD: curStochD,
             isRsiBearishDiv: false,
             isBollingerRejection: spikedAboveBB,
             isRejectionWick: isWickRejection,
@@ -285,7 +286,8 @@ export class ScreenerService {
             openInterest,
             isOIDivergence: false,
             fundingRate,
-            longShortRatio
+            longShortRatio,
+            isBreakingStructure
         };
 
         // 6. Scoring Logic (Sniper Edition)
@@ -298,7 +300,22 @@ export class ScreenerService {
             // Base Score for Context
             if (curRsi > 70) score += 10;
             if (curRsi > 80) score += 10;
-            if (curRsi > 85) score += 40; // USER RULE: RSI > 85 = Guaranteed Dump. Huge Weight.
+
+            // USER REQUEST CHECK: "RSI 85 + Vol Sell + Ratio Padu"
+            // Only award the massive +40 points if we have CONFLUENCE.
+            // Avoid blind shorting into a parabolic run.
+            const isConfluence = curRsi > 85 && volSpike > 2.5 && (longShortRatio < 0.8 && longShortRatio > 0);
+
+            if (curRsi > 85) {
+                if (isConfluence) {
+                    score += 40; // Jackpot Setup
+                } else {
+                    score -= 10; // PENALTY! RSI 85 without Volume/Smart Money is likely a "Runner". DANGEROUS.
+                }
+            }
+
+            // Stoch RSI Overbought (New Real Logic)
+            if (curStochK > 80 && curStochD > 80) score += 15;
 
             // Smart Money Shorting (Ratio < 0.8)
             if (longShortRatio < 0.8 && longShortRatio > 0) score += 15;
@@ -308,21 +325,27 @@ export class ScreenerService {
             if (isBreakingStructure) score += 30;
 
             // Trigger B: Mean Reversion (Extreme Extension)
-            // Price is WAY above EMA21 (>2%) + Showing Weakness
-            // This catches tops BEFORE the breakdown
-            const isExtended = realDistFromEma21 > 2.0; // Adjusted to 2.0%
-            const isSuperExtended = realDistFromEma21 > 4.0; // Adjusted to 4.0%
+            // Price is WAY above EMA21 (>2%) 
+            const isExtended = realDistFromEma21 > 2.0;
+            const isSuperExtended = realDistFromEma21 > 4.0;
 
-            if (isSuperExtended) {
-                score += 35; // Huge confidence if super extended
-            } else if (isExtended && (isWickRejection || isBearishEngulfing)) {
-                score += 20;
+            // CONFIRMATION: Don't short a green rocket.
+            // Require at least a red candle OR a rejection wick.
+            const isRedCandle = cClose < cOpen;
+            const hasResistance = isWickRejection || isBearishEngulfing || isRedCandle;
+
+            if (isSuperExtended && hasResistance) {
+                score += 35; // Huge confidence only if we see resistance
+            } else if (isExtended && hasResistance) {
+                score += 15; // Moderate confidence
             }
+            // If it's extended but still a massive green candle with no wick, SCORE 0 for extension.
+            // Let it pump until it hits resistance.
 
             // Candle Confirmation (Synced with UI)
             if (isWickRejection) score += 20; // UI says +20
             if (isBearishEngulfing) score += 25; // UI says +25
-            if (volSpike > 3) score += 15;
+            if (volSpike > 2.5) score += 15; // Adjusted to > 2.5
         }
 
         score = Math.min(score, 100);
@@ -448,6 +471,7 @@ export class ScreenerService {
     private async logTrade(log: any) {
         try {
             const path = join(process.cwd(), "logs", "trades.jsonl");
+            console.log("Saving trade to:", path); // Debug
             await appendFile(path, JSON.stringify(log) + "\n");
             console.log(`[TRADE CLOSED] ${log.symbol} PnL: ${log.pnl.toFixed(2)}%`);
         } catch (e) {

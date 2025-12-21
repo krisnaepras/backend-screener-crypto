@@ -13,6 +13,8 @@ export interface MarketFeatures {
 
     // Volatility & Structure
     rsi: number;
+    stochK: number; // New
+    stochD: number; // New
     isRsiBearishDiv: boolean; // Lower High RSI + Higher High Price
     isBollingerRejection: boolean; // Touched Upper + Close Inside
     isRejectionWick: boolean; // Top Wick > 50% body
@@ -24,6 +26,7 @@ export interface MarketFeatures {
     isOIDivergence: boolean; // Price Up + OI Down
     fundingRate: number;
     longShortRatio: number; // Top Traders Long/Short Ratio
+    isBreakingStructure: boolean; // Setup: Structure Break
 }
 
 export interface CoinData {

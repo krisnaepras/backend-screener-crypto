@@ -340,14 +340,30 @@ function Scorecard({ symbol }: { symbol: string }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Context */}
-                <ReasonCard label="RSI (14)" value={f.rsi?.toFixed(1)} points={f.rsi > 70 ? "+10" : "0"} triggered={f.rsi > 70} />
-                <ReasonCard label="Stoch RSI" value={f.rsi > 80 ? "Overbought" : "Normal"} points={f.rsi > 80 ? "+15" : "0"} triggered={f.rsi > 80} />
+                <ReasonCard label="RSI (14)"
+                    value={f.rsi?.toFixed(1)}
+                    points={f.rsi > 85 ? (f.volumeSpike > 2.5 && f.longShortRatio < 0.8 ? "+60" : "-10 (Warn)") : f.rsi > 80 ? "+20" : f.rsi > 70 ? "+10" : "0"}
+                    triggered={f.rsi > 70}
+                />
+                <ReasonCard label="Stoch RSI" value={f.stochK && f.stochK > 80 ? "Overbought" : "Normal"} points={f.stochK > 80 && f.stochD > 80 ? "+15" : "0"} triggered={f.stochK > 80 && f.stochD > 80} />
                 <ReasonCard label="L/S Ratio" value={f.longShortRatio?.toFixed(2)} points={f.longShortRatio < 0.8 && f.longShortRatio > 0 ? "+15" : "0"} triggered={f.longShortRatio < 0.8 && f.longShortRatio > 0} />
 
                 {/* Price Action */}
                 <ReasonCard label="Wick Rejection" value={f.isRejectionWick ? "YES" : "NO"} points={f.isRejectionWick ? "+20" : "0"} triggered={f.isRejectionWick} />
                 <ReasonCard label="Bearish Engulfing" value={f.isBearishEngulfing ? "YES" : "NO"} points={f.isBearishEngulfing ? "+25" : "0"} triggered={f.isBearishEngulfing} />
-                <ReasonCard label="Volume Spike" value={`${f.volumeSpike?.toFixed(1)}x`} points={f.volumeSpike > 2 ? "+10" : "0"} triggered={f.volumeSpike > 2} />
+                <ReasonCard label="Volume Spike" value={`${f.volumeSpike?.toFixed(1)}x`} points={f.volumeSpike > 2.5 ? "+15" : "0"} triggered={f.volumeSpike > 2.5} />
+
+                {/* Setup Triggers (The Heavy Hitters) */}
+                <ReasonCard label="Extension (EMA21)"
+                    value={`${f.distFromEma21?.toFixed(2)}%`}
+                    points={f.distFromEma21 > 4.0 ? "+35" : f.distFromEma21 > 2.0 ? "+15" : "0"}
+                    triggered={f.distFromEma21 > 2.0}
+                />
+                <ReasonCard label="Struct. Break"
+                    value={f.isBreakingStructure ? "BROKEN" : "HOLDING"}
+                    points={f.isBreakingStructure ? "+30" : "0"}
+                    triggered={f.isBreakingStructure}
+                />
             </div>
         </div>
     );
