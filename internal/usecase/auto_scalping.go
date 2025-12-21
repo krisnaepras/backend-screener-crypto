@@ -207,7 +207,7 @@ func (s *AutoScalpingService) shouldEnter(coin *domain.CoinData) bool {
 	reversalSigns := 0
 
 	// 1. Rejection wick (upper wick > 50% of candle range)
-	if features.RejectionWick > 0.5 {
+	if features.RejectionWickRatio > 0.5 {
 		reversalSigns++
 	}
 
