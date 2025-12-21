@@ -19,6 +19,13 @@ func main() {
 	tokenRepo := repository.NewTokenRepository()
 	tradeRepo := repository.NewInMemoryTradeRepository()
 	autoScalpRepo := repository.NewInMemoryAutoScalpRepository()
+	
+	// Initialize Binance API Repository with encryption key
+	encryptionKey := os.Getenv("API_ENCRYPTION_KEY")
+	if encryptionKey == "" {
+		encryptionKey = "default-key-change-in-production-32bytes"
+	}
+	binanceAPIRepo := repository.NewBinanceAPIRepository(encryptionKey)
 
 	// 2. Initialize FCM Client
 	fcmClient, err := fcm.NewClient()
@@ -56,6 +63,7 @@ func main() {
 	testHandler := httphandler.NewTestHandler(fcmClient, tokenRepo)
 	tradeHandler := httphandler.NewTradeHandler(tradeRepo)
 	autoScalpHandler := httphandler.NewAutoScalpHandler(autoScalpService)
+	binanceAPIHandler := httphandler.NewBinanceAPIHandler(binanceAPIRepo)
 
 	// Routes
 	http.HandleFunc("/ws", wsHandler.Handle)
@@ -101,6 +109,31 @@ func main() {
 	})
 	http.HandleFunc("/api/autoscalp/active", autoScalpHandler.GetActivePositions)
 	http.HandleFunc("/api/autoscalp/history", autoScalpHandler.GetHistory)
+
+	// Binance API endpoints
+	http.HandleFunc("/api/binance/credentials", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			binanceAPIHandler.SaveCredentials(w, r)
+		case http.MethodGet:
+			binanceAPIHandler.GetCredentials(w, r)
+		case http.MethodDelete:
+			binanceAPIHandler.DeleteCredentials(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	http.HandleFunc("/api/binance/account", binanceAPIHandler.GetAccountInfo)
+	http.HandleFunc("/api/binance/trading-config", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			binanceAPIHandler.SaveTradingConfig(w, r)
+		} else if r.Method == http.MethodGet {
+			binanceAPIHandler.GetTradingConfig(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	http.HandleFunc("/api/binance/test-connection", binanceAPIHandler.TestConnection)
 
 	// Get port from environment variable (Heroku sets this)
 	port := os.Getenv("PORT")
