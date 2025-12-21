@@ -58,9 +58,9 @@ func (h *AutoScalpHandler) GetActivePositions(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Implementation will be in repository
+	activePositions := h.service.GetActivePositions()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode([]interface{}{}) // Placeholder
+	json.NewEncoder(w).Encode(activePositions)
 }
 
 // GetHistory handles GET /api/autoscalp/history?period=1d|7d|30d
@@ -85,10 +85,12 @@ func (h *AutoScalpHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get history and stats
-	// Implementation will be in repository
+	history := h.service.GetHistory(fromTime)
+	stats := h.service.GetStatistics(fromTime)
+
 	response := map[string]interface{}{
-		"history": []interface{}{}, // Placeholder
-		"stats":   h.service.GetStatistics(fromTime),
+		"history": history,
+		"stats":   stats,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

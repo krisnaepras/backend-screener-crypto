@@ -42,6 +42,16 @@ func (s *AutoScalpingService) GetSettings() *domain.AutoScalpSettings {
 	return s.settings
 }
 
+// GetActivePositions returns all active positions
+func (s *AutoScalpingService) GetActivePositions() []*domain.AutoScalpEntry {
+	return s.repo.GetActiveEntries()
+}
+
+// GetHistory returns history for a period
+func (s *AutoScalpingService) GetHistory(fromTime time.Time) []*domain.AutoScalpEntry {
+	return s.repo.GetHistory(fromTime)
+}
+
 // UpdateSettings updates auto scalping settings
 func (s *AutoScalpingService) UpdateSettings(settings *domain.AutoScalpSettings) {
 	s.settings = settings
