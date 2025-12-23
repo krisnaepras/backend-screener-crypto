@@ -66,8 +66,9 @@ type CoinData struct {
 	PullbackScore      float64             `json:"pullbackScore"`
 	PullbackTFScores   []TimeframeScore    `json:"pullbackTfScores,omitempty"`
 	PullbackFeatures   *MarketFeatures     `json:"pullbackFeatures,omitempty"`
-	// Breakout Hunter (15m + 1h) with Volume Spike confirmation
-	BreakoutStatus     string              `json:"breakoutStatus,omitempty"` // "BREAKOUT", "TESTING", "WAIT"
+	// Breakout Hunter (15m + 1h) with Volume Spike confirmation - LONG & SHORT
+	BreakoutStatus     string              `json:"breakoutStatus,omitempty"` // "BREAKOUT_LONG", "BREAKOUT_SHORT", "TESTING_LONG", "TESTING_SHORT", "WAIT"
+	BreakoutDirection  string              `json:"breakoutDirection,omitempty"` // "LONG", "SHORT", ""
 	BreakoutScore      float64             `json:"breakoutScore"`
 	BreakoutTFScores   []TimeframeScore    `json:"breakoutTfScores,omitempty"`
 	BreakoutFeatures   *MarketFeatures     `json:"breakoutFeatures,omitempty"`

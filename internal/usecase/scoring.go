@@ -390,10 +390,10 @@ func CalculatePullbackScore(prices, ema20, ema50, rsi []float64, features *domai
 	return score
 }
 
-// CalculateBreakoutScore calculates score for breakout hunter strategy
+// CalculateBreakoutScore calculates score for breakout hunter strategy (LONG or SHORT)
 // Scoring: Breakout (0-30) + Volume (0-30) + Momentum (0-25) + Structure (0-15) = max 100
-func CalculateBreakoutScore(prices []float64, highs []float64, volumes []float64, ema20 []float64, ema50 []float64, rsi []float64, features *domain.MarketFeatures) float64 {
-	if len(prices) < 20 || len(highs) < 20 || len(volumes) < 20 {
+func CalculateBreakoutScore(prices []float64, extremes []float64, volumes []float64, ema20 []float64, ema50 []float64, rsi []float64, features *domain.MarketFeatures, direction string) float64 {
+	if len(prices) < 20 || len(extremes) < 20 || len(volumes) < 20 {
 		return 0
 	}
 
@@ -403,43 +403,81 @@ func CalculateBreakoutScore(prices []float64, highs []float64, volumes []float64
 	currentRSI := rsi[len(rsi)-1]
 
 	// === BREAKOUT SCORE (0-30) ===
-	// Price breaking recent resistance levels
+	// For LONG: Price breaking recent resistance (highs)
+	// For SHORT: Price breaking recent support (lows)
 	breakoutScore := 0.0
 
-	// Find recent resistance (highest high in last 20-50 candles)
-	recentHigh := 0.0
+	// Find recent extreme (resistance for LONG, support for SHORT)
+	recentExtreme := 0.0
 	lookback := 50
-	if len(highs) < 50 {
-		lookback = len(highs)
-	}
-	for i := len(highs) - lookback; i < len(highs)-1; i++ { // Exclude current candle
-		if highs[i] > recentHigh {
-			recentHigh = highs[i]
-		}
+	if len(extremes) < 50 {
+		lookback = len(extremes)
 	}
 
-	// Check if price is breaking above recent high
-	if recentHigh > 0 {
-		breakoutPct := ((currentPrice - recentHigh) / recentHigh) * 100
-		
-		if breakoutPct > 1.5 {
-			breakoutScore += 30 // Strong breakout (>1.5% above resistance)
-		} else if breakoutPct > 0.5 {
-			breakoutScore += 25 // Clear breakout
-		} else if breakoutPct > 0 {
-			breakoutScore += 20 // Just broke through
-		} else if breakoutPct > -0.5 {
-			breakoutScore += 10 // Testing resistance
+	if direction == "LONG" {
+		// Find highest high (resistance)
+		for i := len(extremes) - lookback; i < len(extremes)-1; i++ { // Exclude current candle
+			if extremes[i] > recentExtreme {
+				recentExtreme = extremes[i]
+			}
 		}
-	}
 
-	// Price above EMA20 and EMA50 (uptrend structure)
-	if len(ema20) > 0 && len(ema50) > 0 {
-		ema20Val := ema20[len(ema20)-1]
-		ema50Val := ema50[len(ema50)-1]
-		
-		if currentPrice > ema20Val && currentPrice > ema50Val && ema20Val > ema50Val {
-			breakoutScore += 5 // Bullish EMA alignment
+		// Check if price is breaking above recent high
+		if recentExtreme > 0 {
+			breakoutPct := ((currentPrice - recentExtreme) / recentExtreme) * 100
+			
+			if breakoutPct > 1.5 {
+				breakoutScore += 30 // Strong breakout (>1.5% above resistance)
+			} else if breakoutPct > 0.5 {
+				breakoutScore += 25 // Clear breakout
+			} else if breakoutPct > 0 {
+				breakoutScore += 20 // Just broke through
+			} else if breakoutPct > -0.5 {
+				breakoutScore += 10 // Testing resistance
+			}
+		}
+
+		// Price above EMA20 and EMA50 (uptrend structure)
+		if len(ema20) > 0 && len(ema50) > 0 {
+			ema20Val := ema20[len(ema20)-1]
+			ema50Val := ema50[len(ema50)-1]
+			
+			if currentPrice > ema20Val && currentPrice > ema50Val && ema20Val > ema50Val {
+				breakoutScore += 5 // Bullish EMA alignment
+			}
+		}
+	} else if direction == "SHORT" {
+		// Find lowest low (support)
+		recentExtreme = extremes[len(extremes) - lookback] // Initialize with first value
+		for i := len(extremes) - lookback; i < len(extremes)-1; i++ { // Exclude current candle
+			if extremes[i] < recentExtreme {
+				recentExtreme = extremes[i]
+			}
+		}
+
+		// Check if price is breaking below recent low
+		if recentExtreme > 0 {
+			breakdownPct := ((recentExtreme - currentPrice) / recentExtreme) * 100
+			
+			if breakdownPct > 1.5 {
+				breakoutScore += 30 // Strong breakdown (>1.5% below support)
+			} else if breakdownPct > 0.5 {
+				breakoutScore += 25 // Clear breakdown
+			} else if breakdownPct > 0 {
+				breakoutScore += 20 // Just broke through
+			} else if breakdownPct > -0.5 {
+				breakoutScore += 10 // Testing support
+			}
+		}
+
+		// Price below EMA20 and EMA50 (downtrend structure)
+		if len(ema20) > 0 && len(ema50) > 0 {
+			ema20Val := ema20[len(ema20)-1]
+			ema50Val := ema50[len(ema50)-1]
+			
+			if currentPrice < ema20Val && currentPrice < ema50Val && ema20Val < ema50Val {
+				breakoutScore += 5 // Bearish EMA alignment
+			}
 		}
 	}
 
@@ -449,7 +487,7 @@ func CalculateBreakoutScore(prices []float64, highs []float64, volumes []float64
 	score += breakoutScore
 
 	// === VOLUME SPIKE SCORE (0-30) ===
-	// Strong volume confirms breakout validity
+	// Strong volume confirms breakout/breakdown validity
 	volumeScore := 0.0
 
 	// Calculate average volume (last 20 candles, excluding current)
@@ -488,29 +526,54 @@ func CalculateBreakoutScore(prices []float64, highs []float64, volumes []float64
 	score += volumeScore
 
 	// === MOMENTUM SCORE (0-25) ===
-	// RSI and price momentum confirm bullish breakout
+	// For LONG: RSI and price momentum confirm bullish breakout
+	// For SHORT: RSI and price momentum confirm bearish breakdown
 	momentumScore := 0.0
 
-	// RSI in bullish zone (50-75 = ideal, not overbought yet)
-	if currentRSI > 65 && currentRSI < 75 {
-		momentumScore += 15 // Strong momentum, not overbought
-	} else if currentRSI > 55 && currentRSI < 70 {
-		momentumScore += 12 // Good momentum
-	} else if currentRSI > 50 && currentRSI < 65 {
-		momentumScore += 8 // Building momentum
-	} else if currentRSI < 50 {
-		momentumScore += 0 // Weak momentum (bearish RSI)
-	} else if currentRSI > 75 {
-		momentumScore += 5 // Too overbought, risky
-	}
+	if direction == "LONG" {
+		// RSI in bullish zone (50-75 = ideal, not overbought yet)
+		if currentRSI > 65 && currentRSI < 75 {
+			momentumScore += 15 // Strong momentum, not overbought
+		} else if currentRSI > 55 && currentRSI < 70 {
+			momentumScore += 12 // Good momentum
+		} else if currentRSI > 50 && currentRSI < 65 {
+			momentumScore += 8 // Building momentum
+		} else if currentRSI < 50 {
+			momentumScore += 0 // Weak momentum (bearish RSI)
+		} else if currentRSI > 75 {
+			momentumScore += 5 // Too overbought, risky
+		}
 
-	// Price action momentum (recent price increase)
-	if features.PctChange24h > 5 {
-		momentumScore += 10 // Strong upward move
-	} else if features.PctChange24h > 2 {
-		momentumScore += 7 // Good move
-	} else if features.PctChange24h > 0 {
-		momentumScore += 3 // Positive move
+		// Price action momentum (recent price increase)
+		if features.PctChange24h > 5 {
+			momentumScore += 10 // Strong upward move
+		} else if features.PctChange24h > 2 {
+			momentumScore += 7 // Good move
+		} else if features.PctChange24h > 0 {
+			momentumScore += 3 // Positive move
+		}
+	} else if direction == "SHORT" {
+		// RSI in bearish zone (25-50 = ideal, not oversold yet)
+		if currentRSI < 35 && currentRSI > 25 {
+			momentumScore += 15 // Strong bearish momentum, not oversold
+		} else if currentRSI < 45 && currentRSI > 30 {
+			momentumScore += 12 // Good bearish momentum
+		} else if currentRSI < 50 && currentRSI > 35 {
+			momentumScore += 8 // Building bearish momentum
+		} else if currentRSI > 50 {
+			momentumScore += 0 // Weak momentum (bullish RSI)
+		} else if currentRSI < 25 {
+			momentumScore += 5 // Too oversold, risky
+		}
+
+		// Price action momentum (recent price decrease)
+		if features.PctChange24h < -5 {
+			momentumScore += 10 // Strong downward move
+		} else if features.PctChange24h < -2 {
+			momentumScore += 7 // Good move
+		} else if features.PctChange24h < 0 {
+			momentumScore += 3 // Negative move
+		}
 	}
 
 	if momentumScore > 25 {
@@ -519,7 +582,7 @@ func CalculateBreakoutScore(prices []float64, highs []float64, volumes []float64
 	score += momentumScore
 
 	// === STRUCTURE SCORE (0-15) ===
-	// Clean breakout structure (no false breakouts, clean candles)
+	// Clean breakout/breakdown structure
 	structureScore := 0.0
 
 	// Low rejection wick = clean breakout (bulls in control)

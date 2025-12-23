@@ -591,9 +591,10 @@ func (uc *ScreenerUsecase) process() {
 			}
 
 			// === BREAKOUT HUNTER (15m + 1h) with Volume Spike ===
-			// Criteria: Price breaks resistance + volume spike (>1.5x avg) + momentum
+			// Detect both LONG (resistance breakout) and SHORT (support breakdown)
 			var breakoutTFScores []domain.TimeframeScore
 			var breakoutFeaturesMap = make(map[string]*domain.MarketFeatures)
+			var breakoutLowsMap = make(map[string][]float64) // For support levels
 
 			for _, tf := range breakoutTimeframes {
 				rawKlines, err := uc.binanceClient.GetKlines(symbol, tf, 100)
@@ -622,13 +623,13 @@ func (uc *ScreenerUsecase) process() {
 				rsi := indicators.CalculateRSI(prices, 14)
 				atr := indicators.CalculateATR(highs, lows, prices, 14)
 				bb := indicators.CalculateBollingerBands(prices, 20, 2.0)
-				pivots := indicators.FindPivotHighs(highs, 5, 2) // Use pivot highs for resistance
+				pivotsLow := indicators.FindPivotLows(lows, 5, 2) // For support
 
 				features := ExtractFeatures(
 					prices, highs, lows, volumes,
 					tickerMap[symbol],
 					ema50, make([]float64, len(prices)), rsi,
-					bb, atr, pivots,
+					bb, atr, pivotsLow,
 					funding, 0,
 				)
 
@@ -636,25 +637,38 @@ func (uc *ScreenerUsecase) process() {
 					continue
 				}
 
-				// Calculate breakout score
-				breakoutScore := CalculateBreakoutScore(prices, highs, volumes, ema20, ema50, rsi, features)
+				// Calculate breakout/breakdown score
+				breakoutScoreLong := CalculateBreakoutScore(prices, highs, volumes, ema20, ema50, rsi, features, "LONG")
+				breakoutScoreShort := CalculateBreakoutScore(prices, lows, volumes, ema20, ema50, rsi, features, "SHORT")
+				
+				// Use the higher score
+				breakoutScore := breakoutScoreLong
+				if breakoutScoreShort > breakoutScoreLong {
+					breakoutScore = breakoutScoreShort
+				}
+
 				breakoutTFScores = append(breakoutTFScores, domain.TimeframeScore{
 					TF:    tf,
 					Score: breakoutScore,
 					RSI:   features.RSI,
 				})
 				breakoutFeaturesMap[tf] = features
+				breakoutLowsMap[tf] = lows
 			}
 
-			// Evaluate Breakout Setup
+			// Evaluate Breakout Setup (LONG and SHORT)
 			if len(breakoutTFScores) >= 2 {
 				var breakoutTotalScore float64
 				breakoutConfluence := 0
 				var breakoutPrimaryFeatures *domain.MarketFeatures
 
-				// Check both TFs for breakout signals
-				confirmedBreakouts := 0
-				testingBreakouts := 0
+				// Check both TFs for LONG breakout signals
+				confirmedBreakoutsLong := 0
+				testingBreakoutsLong := 0
+
+				// Check both TFs for SHORT breakdown signals  
+				confirmedBreakoutsShort := 0
+				testingBreakoutsShort := 0
 
 				for _, tf := range breakoutTimeframes {
 					feat, ok := breakoutFeaturesMap[tf]
@@ -662,28 +676,64 @@ func (uc *ScreenerUsecase) process() {
 						continue
 					}
 
-					// Breakout criteria:
+					// === LONG Breakout Criteria ===
 					// 1. Price breaking recent highs
 					// 2. Volume spike (>1.5x average)
 					// 3. RSI > 50 (bullish momentum)
 					// 4. Price above EMA20
 					
-					isBreakingOut := feat.OverExtEma > 0.01 && !feat.IsAboveUpperBand // Above EMA but not overextended
-					hasVolume := feat.VolumeDeclineRatio < -0.3 // Volume increasing (negative ratio = volume up)
-					hasMomentum := feat.RSI > 50 && feat.RSI < 75 // Strong but not overbought
+					isBreakingOutLong := feat.OverExtEma > 0.01 && !feat.IsAboveUpperBand // Above EMA but not overextended
+					hasVolumeLong := feat.VolumeDeclineRatio < -0.3                        // Volume increasing
+					hasMomentumLong := feat.RSI > 50 && feat.RSI < 75                      // Strong but not overbought
 					
-					if isBreakingOut && hasVolume && hasMomentum {
-						confirmedBreakouts++
-						breakoutConfluence = 2
-					} else if (isBreakingOut && hasVolume) || (isBreakingOut && hasMomentum) {
-						testingBreakouts++
-						if breakoutConfluence < 2 {
-							breakoutConfluence = 1
-						}
+					if isBreakingOutLong && hasVolumeLong && hasMomentumLong {
+						confirmedBreakoutsLong++
+					} else if (isBreakingOutLong && hasVolumeLong) || (isBreakingOutLong && hasMomentumLong) {
+						testingBreakoutsLong++
+					}
+
+					// === SHORT Breakdown Criteria ===
+					// 1. Price breaking recent lows (support)
+					// 2. Volume spike (>1.5x average)
+					// 3. RSI < 50 (bearish momentum)
+					// 4. Price below EMA20
+					
+					isBreakingDownShort := feat.OverExtEma < -0.01 // Below EMA
+					hasVolumeShort := feat.VolumeDeclineRatio < -0.3 // Volume increasing
+					hasMomentumShort := feat.RSI < 50 && feat.RSI > 25 // Bearish but not oversold yet
+					
+					if isBreakingDownShort && hasVolumeShort && hasMomentumShort {
+						confirmedBreakoutsShort++
+					} else if (isBreakingDownShort && hasVolumeShort) || (isBreakingDownShort && hasMomentumShort) {
+						testingBreakoutsShort++
 					}
 
 					if breakoutPrimaryFeatures == nil {
 						breakoutPrimaryFeatures = feat
+					}
+				}
+
+				// Determine direction and status
+				var breakoutDirection string
+				var confirmedBreakouts int
+				var testingBreakouts int
+
+				// Prioritize the stronger signal
+				if confirmedBreakoutsLong >= confirmedBreakoutsShort && (confirmedBreakoutsLong > 0 || testingBreakoutsLong > testingBreakoutsShort) {
+					breakoutDirection = "LONG"
+					confirmedBreakouts = confirmedBreakoutsLong
+					testingBreakouts = testingBreakoutsLong
+					breakoutConfluence = confirmedBreakoutsLong
+					if testingBreakoutsLong > 0 && breakoutConfluence == 0 {
+						breakoutConfluence = 1
+					}
+				} else if confirmedBreakoutsShort > 0 || testingBreakoutsShort > 0 {
+					breakoutDirection = "SHORT"
+					confirmedBreakouts = confirmedBreakoutsShort
+					testingBreakouts = testingBreakoutsShort
+					breakoutConfluence = confirmedBreakoutsShort
+					if testingBreakoutsShort > 0 && breakoutConfluence == 0 {
+						breakoutConfluence = 1
 					}
 				}
 
@@ -709,15 +759,16 @@ func (uc *ScreenerUsecase) process() {
 				}
 				coin.BreakoutTFScores = breakoutTFScores
 				coin.BreakoutFeatures = breakoutPrimaryFeatures
+				coin.BreakoutDirection = breakoutDirection
 
-				// Breakout Status: BREAKOUT (confirmed), TESTING (approaching), WAIT (watching)
-				if breakoutPrimaryFeatures != nil {
+				// Breakout Status with direction
+				if breakoutPrimaryFeatures != nil && breakoutDirection != "" {
 					if confirmedBreakouts >= 2 && coin.BreakoutScore >= 50 {
-						coin.BreakoutStatus = "BREAKOUT" // Confirmed breakout!
+						coin.BreakoutStatus = "BREAKOUT_" + breakoutDirection // "BREAKOUT_LONG" or "BREAKOUT_SHORT"
 					} else if confirmedBreakouts >= 1 && coin.BreakoutScore >= 40 {
-						coin.BreakoutStatus = "TESTING" // Testing resistance
+						coin.BreakoutStatus = "TESTING_" + breakoutDirection // "TESTING_LONG" or "TESTING_SHORT"
 					} else if testingBreakouts >= 1 && coin.BreakoutScore >= 30 {
-						coin.BreakoutStatus = "WAIT" // Watching for breakout
+						coin.BreakoutStatus = "WAIT_" + breakoutDirection // "WAIT_LONG" or "WAIT_SHORT"
 					}
 				}
 			}
