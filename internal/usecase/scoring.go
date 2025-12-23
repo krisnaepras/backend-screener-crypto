@@ -256,112 +256,11 @@ func strconvToFloat(s string) (float64, error) {
 	return strconv.ParseFloat(s, 64)
 }
 
-// CalculateVolatility computes volatility metrics for a coin
-// Returns: atrPercent, bbWidth, volumeRatio, volatilityScore
-func CalculateVolatility(prices, highs, lows, volumes []float64, atr, bbUpper, bbLower []float64) (float64, float64, float64, float64) {
-	if len(prices) < 20 || len(atr) < 14 {
-		return 0, 0, 0, 0
-	}
-
-	lastIdx := len(prices) - 1
-	currentPrice := prices[lastIdx]
-	currentAtr := atr[lastIdx]
-
-	// ATR as percentage of price (higher = more volatile)
-	atrPercent := 0.0
-	if currentPrice > 0 {
-		atrPercent = (currentAtr / currentPrice) * 100
-	}
-
-	// Bollinger Band width percentage
-	bbWidth := 0.0
-	if len(bbUpper) > lastIdx && len(bbLower) > lastIdx && currentPrice > 0 {
-		bbWidth = ((bbUpper[lastIdx] - bbLower[lastIdx]) / currentPrice) * 100
-	}
-
-	// Volume ratio (current vs 20-period average)
-	volumeRatio := 1.0
-	if len(volumes) >= 20 {
-		avgVolume := 0.0
-		for i := lastIdx - 19; i < lastIdx; i++ {
-			avgVolume += volumes[i]
-		}
-		avgVolume /= 20
-		if avgVolume > 0 {
-			volumeRatio = volumes[lastIdx] / avgVolume
-		}
-	}
-
-	// Volatility Score (0-100)
-	// Focus on ATR% and BB width - higher = more volatile
-	volatilityScore := 0.0
-
-	// ATR% scoring (0-40)
-	// Crypto typically: <1% = low, 1-3% = medium, >3% = high volatility
-	if atrPercent >= 4.0 {
-		volatilityScore += 40 // Very high volatility
-	} else if atrPercent >= 3.0 {
-		volatilityScore += 35
-	} else if atrPercent >= 2.0 {
-		volatilityScore += 25
-	} else if atrPercent >= 1.5 {
-		volatilityScore += 15
-	} else if atrPercent >= 1.0 {
-		volatilityScore += 10
-	}
-
-	// BB Width scoring (0-30)
-	// Higher width = more volatile
-	if bbWidth >= 8.0 {
-		volatilityScore += 30
-	} else if bbWidth >= 6.0 {
-		volatilityScore += 25
-	} else if bbWidth >= 4.0 {
-		volatilityScore += 20
-	} else if bbWidth >= 3.0 {
-		volatilityScore += 15
-	} else if bbWidth >= 2.0 {
-		volatilityScore += 10
-	}
-
-	// Volume spike scoring (0-30)
-	// Volume > 1.5x avg = active trading = good for pullback
-	if volumeRatio >= 3.0 {
-		volatilityScore += 30
-	} else if volumeRatio >= 2.0 {
-		volatilityScore += 25
-	} else if volumeRatio >= 1.5 {
-		volatilityScore += 20
-	} else if volumeRatio >= 1.2 {
-		volatilityScore += 10
-	}
-
-	if volatilityScore > 100 {
-		volatilityScore = 100
-	}
-
-	return atrPercent, bbWidth, volumeRatio, volatilityScore
-}
-
 // CalculatePullbackScore computes score for Buy the Dip / Pullback Entry setup
-// Criteria: Uptrend + Pullback to support/EMA + Bounce signal + HIGH VOLATILITY
-func CalculatePullbackScore(prices, highs, lows, volumes, ema20, ema50, rsi, atr, bbUpper, bbLower []float64, features *domain.MarketFeatures) (float64, float64, float64, float64, float64) {
+// Criteria: Uptrend + Pullback to support/EMA + Bounce signal
+func CalculatePullbackScore(prices, ema20, ema50, rsi []float64, features *domain.MarketFeatures) float64 {
 	if len(prices) < 50 || len(ema20) < 50 || len(ema50) < 50 || len(rsi) < 14 {
-		return 0, 0, 0, 0, 0
-	}
-
-	// Calculate volatility first
-	atrPercent, bbWidth, volumeRatio, volatilityScore := CalculateVolatility(prices, highs, lows, volumes, atr, bbUpper, bbLower)
-
-	// VOLATILITY GATE: If volatility too low, reduce attractiveness
-	// We want volatile coins for pullback plays
-	volatilityMultiplier := 1.0
-	if volatilityScore < 30 {
-		volatilityMultiplier = 0.5 // Low volatility = less attractive
-	} else if volatilityScore < 50 {
-		volatilityMultiplier = 0.75
-	} else if volatilityScore >= 70 {
-		volatilityMultiplier = 1.2 // High volatility bonus
+		return 0
 	}
 
 	lastIdx := len(prices) - 1
@@ -372,18 +271,18 @@ func CalculatePullbackScore(prices, highs, lows, volumes, ema20, ema50, rsi, atr
 
 	score := 0.0
 
-	// === TREND SCORE (0-25) ===
+	// === TREND SCORE (0-30) ===
 	// Check if in uptrend: EMA20 > EMA50, price trending up
 	trendScore := 0.0
 
 	// EMA alignment (uptrend)
 	if currentEma20 > currentEma50 {
-		trendScore += 12 // EMAs aligned bullish
+		trendScore += 15 // EMAs aligned bullish
 	}
 
 	// Price above EMA50 (still in uptrend structure)
 	if currentPrice > currentEma50*0.98 { // Allow slight dip below EMA50
-		trendScore += 8
+		trendScore += 10
 	}
 
 	// Higher highs check (last 20 candles)
@@ -405,8 +304,8 @@ func CalculatePullbackScore(prices, highs, lows, volumes, ema20, ema50, rsi, atr
 		}
 	}
 
-	if trendScore > 25 {
-		trendScore = 25
+	if trendScore > 30 {
+		trendScore = 30
 	}
 	score += trendScore
 
@@ -418,9 +317,9 @@ func CalculatePullbackScore(prices, highs, lows, volumes, ema20, ema50, rsi, atr
 	if currentRsi >= 30 && currentRsi <= 40 {
 		pullbackScore += 20 // Ideal oversold bounce zone
 	} else if currentRsi > 40 && currentRsi <= 50 {
-		pullbackScore += 12 // Mild pullback
+		pullbackScore += 15 // Mild pullback
 	} else if currentRsi >= 25 && currentRsi < 30 {
-		pullbackScore += 8 // Very oversold, risky but potential
+		pullbackScore += 10 // Very oversold, risky but potential
 	}
 
 	// Price pulled back to EMA zone (near EMA20 or between EMA20-EMA50)
@@ -431,12 +330,12 @@ func CalculatePullbackScore(prices, highs, lows, volumes, ema20, ema50, rsi, atr
 		pullbackScore += 5 // Slight dip below EMA20
 	}
 
-	if pullbackScore > 25 {
-		pullbackScore = 25
+	if pullbackScore > 30 {
+		pullbackScore = 30
 	}
 	score += pullbackScore
 
-	// === BOUNCE SIGNAL SCORE (0-20) ===
+	// === BOUNCE SIGNAL SCORE (0-25) ===
 	bounceScore := 0.0
 
 	// RSI bouncing (current RSI higher than recent low)
@@ -448,7 +347,7 @@ func CalculatePullbackScore(prices, highs, lows, volumes, ema20, ema50, rsi, atr
 			}
 		}
 		if currentRsi > minRsi+3 { // RSI bouncing up
-			bounceScore += 12
+			bounceScore += 15
 		}
 	}
 
@@ -461,12 +360,12 @@ func CalculatePullbackScore(prices, highs, lows, volumes, ema20, ema50, rsi, atr
 			}
 		}
 		if currentPrice > minPrice*1.005 { // Price bounced at least 0.5%
-			bounceScore += 8
+			bounceScore += 10
 		}
 	}
 
-	if bounceScore > 20 {
-		bounceScore = 20
+	if bounceScore > 25 {
+		bounceScore = 25
 	}
 	score += bounceScore
 
@@ -488,149 +387,162 @@ func CalculatePullbackScore(prices, highs, lows, volumes, ema20, ema50, rsi, atr
 	}
 	score += riskScore
 
-	// === VOLATILITY BONUS (0-15) ===
-	// Add points for high volatility coins
-	volBonus := 0.0
-	if volatilityScore >= 70 {
-		volBonus = 15
-	} else if volatilityScore >= 50 {
-		volBonus = 10
-	} else if volatilityScore >= 35 {
-		volBonus = 5
-	}
-	score += volBonus
-
-	// Apply volatility multiplier to final score
-	score = score * volatilityMultiplier
-
-	if score > 100 {
-		score = 100
-	}
-
-	return score, atrPercent, bbWidth, volumeRatio, volatilityScore
+	return score
 }
 
-// CalculateBreakoutScore computes score for Breakout Hunter setup
-// Criteria: Near resistance + Volume spike + Momentum + Breakout confirmation
-func CalculateBreakoutScore(prices, highs, lows, volumes, bbUpper, bbLower []float64, features *domain.MarketFeatures) (float64, float64, float64) {
-	if len(prices) < 50 || len(highs) < 20 || len(volumes) < 20 {
-		return 0, 0, 0
-	}
-
-	lastIdx := len(prices) - 1
-	currentPrice := prices[lastIdx]
-	currentHigh := highs[lastIdx]
-
-	// Find resistance level (recent high in last 50 candles)
-	resistance := highs[lastIdx-20]
-	for i := lastIdx - 20; i <= lastIdx; i++ {
-		if highs[i] > resistance {
-			resistance = highs[i]
-		}
-	}
-
-	// Distance to resistance
-	distToResistance := 0.0
-	if resistance > 0 {
-		distToResistance = ((resistance - currentPrice) / currentPrice) * 100
+// CalculateBreakoutScore calculates score for breakout hunter strategy
+// Scoring: Breakout (0-30) + Volume (0-30) + Momentum (0-25) + Structure (0-15) = max 100
+func CalculateBreakoutScore(prices []float64, highs []float64, volumes []float64, ema20 []float64, ema50 []float64, rsi []float64, features *domain.MarketFeatures) float64 {
+	if len(prices) < 20 || len(highs) < 20 || len(volumes) < 20 {
+		return 0
 	}
 
 	score := 0.0
+	currentPrice := prices[len(prices)-1]
+	currentVolume := volumes[len(volumes)-1]
+	currentRSI := rsi[len(rsi)-1]
 
-	// === PROXIMITY TO RESISTANCE (0-30) ===
-	proximityScore := 0.0
-	if distToResistance <= 0 {
-		// Already broken resistance!
-		proximityScore = 30
-	} else if distToResistance <= 0.5 {
-		// Very close to resistance
-		proximityScore = 25
-	} else if distToResistance <= 1.0 {
-		// Close to resistance
-		proximityScore = 20
-	} else if distToResistance <= 2.0 {
-		// Approaching resistance
-		proximityScore = 15
-	} else if distToResistance <= 3.0 {
-		// Within reach
-		proximityScore = 10
-	}
-	score += proximityScore
-
-	// === VOLUME SPIKE (0-35) - Critical for breakout confirmation ===
-	volumeScore := 0.0
-	avgVolume := 0.0
-	for i := lastIdx - 19; i < lastIdx; i++ {
-		avgVolume += volumes[i]
-	}
-	avgVolume /= 20
-
-	currentVolume := volumes[lastIdx]
-	volumeRatio := 1.0
-	if avgVolume > 0 {
-		volumeRatio = currentVolume / avgVolume
-	}
-
-	// Volume spike is KEY for breakout
-	if volumeRatio >= 3.0 {
-		volumeScore = 35 // Huge volume spike!
-	} else if volumeRatio >= 2.5 {
-		volumeScore = 30
-	} else if volumeRatio >= 2.0 {
-		volumeScore = 25
-	} else if volumeRatio >= 1.5 {
-		volumeScore = 20
-	} else if volumeRatio >= 1.2 {
-		volumeScore = 10
-	}
-	score += volumeScore
-
-	// === MOMENTUM (0-20) ===
-	momentumScore := 0.0
-	// RSI > 50 = bullish momentum
-	if features.RSI >= 60 {
-		momentumScore += 15
-	} else if features.RSI >= 50 {
-		momentumScore += 10
-	} else if features.RSI >= 45 {
-		momentumScore += 5
-	}
-
-	// Price trending up
-	if currentPrice > prices[lastIdx-5] {
-		momentumScore += 5
-	}
-
-	if momentumScore > 20 {
-		momentumScore = 20
-	}
-	score += momentumScore
-
-	// === BREAKOUT CONFIRMATION (0-15) ===
+	// === BREAKOUT SCORE (0-30) ===
+	// Price breaking recent resistance levels
 	breakoutScore := 0.0
-	// Price above resistance
-	if currentPrice > resistance {
-		breakoutScore += 10
+
+	// Find recent resistance (highest high in last 20-50 candles)
+	recentHigh := 0.0
+	lookback := 50
+	if len(highs) < 50 {
+		lookback = len(highs)
+	}
+	for i := len(highs) - lookback; i < len(highs)-1; i++ { // Exclude current candle
+		if highs[i] > recentHigh {
+			recentHigh = highs[i]
+		}
 	}
 
-	// High above resistance (strong breakout)
-	if currentHigh > resistance*1.01 {
-		breakoutScore += 5
+	// Check if price is breaking above recent high
+	if recentHigh > 0 {
+		breakoutPct := ((currentPrice - recentHigh) / recentHigh) * 100
+		
+		if breakoutPct > 1.5 {
+			breakoutScore += 30 // Strong breakout (>1.5% above resistance)
+		} else if breakoutPct > 0.5 {
+			breakoutScore += 25 // Clear breakout
+		} else if breakoutPct > 0 {
+			breakoutScore += 20 // Just broke through
+		} else if breakoutPct > -0.5 {
+			breakoutScore += 10 // Testing resistance
+		}
 	}
 
-	// Above upper Bollinger Band (breakout strength)
-	if len(bbUpper) > lastIdx && currentPrice > bbUpper[lastIdx] {
-		// Already counted in proximity
+	// Price above EMA20 and EMA50 (uptrend structure)
+	if len(ema20) > 0 && len(ema50) > 0 {
+		ema20Val := ema20[len(ema20)-1]
+		ema50Val := ema50[len(ema50)-1]
+		
+		if currentPrice > ema20Val && currentPrice > ema50Val && ema20Val > ema50Val {
+			breakoutScore += 5 // Bullish EMA alignment
+		}
 	}
 
-	if breakoutScore > 15 {
-		breakoutScore = 15
+	if breakoutScore > 30 {
+		breakoutScore = 30
 	}
 	score += breakoutScore
 
-	if score > 100 {
-		score = 100
+	// === VOLUME SPIKE SCORE (0-30) ===
+	// Strong volume confirms breakout validity
+	volumeScore := 0.0
+
+	// Calculate average volume (last 20 candles, excluding current)
+	avgVolume := 0.0
+	volCount := 0
+	for i := len(volumes) - 21; i < len(volumes)-1; i++ {
+		if i >= 0 {
+			avgVolume += volumes[i]
+			volCount++
+		}
+	}
+	if volCount > 0 {
+		avgVolume /= float64(volCount)
 	}
 
-	return score, resistance, distToResistance
+	// Check volume spike
+	if avgVolume > 0 {
+		volumeRatio := currentVolume / avgVolume
+		
+		if volumeRatio > 3.0 {
+			volumeScore += 30 // Massive volume spike (>3x)
+		} else if volumeRatio > 2.5 {
+			volumeScore += 25 // Very high volume
+		} else if volumeRatio > 2.0 {
+			volumeScore += 20 // High volume
+		} else if volumeRatio > 1.5 {
+			volumeScore += 15 // Good volume
+		} else if volumeRatio > 1.2 {
+			volumeScore += 10 // Decent volume
+		}
+	}
+
+	if volumeScore > 30 {
+		volumeScore = 30
+	}
+	score += volumeScore
+
+	// === MOMENTUM SCORE (0-25) ===
+	// RSI and price momentum confirm bullish breakout
+	momentumScore := 0.0
+
+	// RSI in bullish zone (50-75 = ideal, not overbought yet)
+	if currentRSI > 65 && currentRSI < 75 {
+		momentumScore += 15 // Strong momentum, not overbought
+	} else if currentRSI > 55 && currentRSI < 70 {
+		momentumScore += 12 // Good momentum
+	} else if currentRSI > 50 && currentRSI < 65 {
+		momentumScore += 8 // Building momentum
+	} else if currentRSI < 50 {
+		momentumScore += 0 // Weak momentum (bearish RSI)
+	} else if currentRSI > 75 {
+		momentumScore += 5 // Too overbought, risky
+	}
+
+	// Price action momentum (recent price increase)
+	if features.PctChange24h > 5 {
+		momentumScore += 10 // Strong upward move
+	} else if features.PctChange24h > 2 {
+		momentumScore += 7 // Good move
+	} else if features.PctChange24h > 0 {
+		momentumScore += 3 // Positive move
+	}
+
+	if momentumScore > 25 {
+		momentumScore = 25
+	}
+	score += momentumScore
+
+	// === STRUCTURE SCORE (0-15) ===
+	// Clean breakout structure (no false breakouts, clean candles)
+	structureScore := 0.0
+
+	// Low rejection wick = clean breakout (bulls in control)
+	if features.RejectionWickRatio < 0.2 {
+		structureScore += 8 // Very clean breakout
+	} else if features.RejectionWickRatio < 0.4 {
+		structureScore += 5 // Decent breakout
+	}
+
+	// Not breaking down (no support break)
+	if !features.IsBreakdown {
+		structureScore += 4
+	}
+
+	// Not overextended yet (room to run)
+	if !features.IsAboveUpperBand {
+		structureScore += 3
+	}
+
+	if structureScore > 15 {
+		structureScore = 15
+	}
+	score += structureScore
+
+	return score
 }

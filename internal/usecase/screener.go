@@ -101,7 +101,7 @@ func (uc *ScreenerUsecase) process() {
 	// Core timeframes for scalping: 1m + 5m
 	// Intraday timeframes: 15m + 1h
 	// Pullback setup: 5m + 15m (trend), 1m + 3m (execution)
-	// Breakout hunter: 15m + 1h (detection)
+	// Breakout: 15m + 1h (for solid breakouts)
 	coreTimeframes := []string{"1m", "5m"}
 	intradayTimeframes := []string{"15m", "1h"}
 	pullbackSetupTFs := []string{"5m", "15m"}
@@ -325,15 +325,6 @@ func (uc *ScreenerUsecase) process() {
 				FundingRate:        funding,
 				Features:           primaryFeatures,
 				IntradayTFScores:   intradayTFScores,
-				// Initialize volatility fields with defaults
-				VolatilityScore:    0,
-				AtrPercent:         0,
-				BbWidth:            0,
-				VolumeRatio:        0,
-				// Initialize breakout fields with defaults
-				BreakoutScore:      0,
-				ResistancePrice:    0,
-				DistToResistance:   0,
 			}
 
 			// === INTRADAY STATUS (15m + 1h) - SHORT ONLY ===
@@ -457,17 +448,8 @@ func (uc *ScreenerUsecase) process() {
 					continue
 				}
 
-				// Calculate pullback score with volatility (different criteria)
-				pullbackScore, atrPct, bbW, volR, volScore := CalculatePullbackScore(prices, highs, lows, volumes, ema20, ema50, rsi, atr, bb.Upper, bb.Lower, features)
-				
-				// Store volatility metrics (use first TF as reference)
-				if coin.AtrPercent == 0 {
-					coin.AtrPercent = atrPct
-					coin.BbWidth = bbW
-					coin.VolumeRatio = volR
-					coin.VolatilityScore = volScore
-				}
-				
+				// Calculate pullback score (different criteria)
+				pullbackScore := CalculatePullbackScore(prices, ema20, ema50, rsi, features)
 				pullbackTFScores = append(pullbackTFScores, domain.TimeframeScore{
 					TF:    tf,
 					Score: pullbackScore,
@@ -518,16 +500,7 @@ func (uc *ScreenerUsecase) process() {
 					continue
 				}
 
-				pullbackScore, atrPct, bbW, volR, volScore := CalculatePullbackScore(prices, highs, lows, volumes, ema20, ema50, rsi, atr, bb.Upper, bb.Lower, features)
-				
-				// Update volatility if higher than setup TF
-				if volScore > coin.VolatilityScore {
-					coin.AtrPercent = atrPct
-					coin.BbWidth = bbW
-					coin.VolumeRatio = volR
-					coin.VolatilityScore = volScore
-				}
-				
+				pullbackScore := CalculatePullbackScore(prices, ema20, ema50, rsi, features)
 				pullbackTFScores = append(pullbackTFScores, domain.TimeframeScore{
 					TF:    tf,
 					Score: pullbackScore,
@@ -617,8 +590,8 @@ func (uc *ScreenerUsecase) process() {
 				}
 			}
 
-			// === BREAKOUT HUNTER (15m + 1h) ===
-			// Detect resistance breakout with VOLUME SPIKE confirmation
+			// === BREAKOUT HUNTER (15m + 1h) with Volume Spike ===
+			// Criteria: Price breaks resistance + volume spike (>1.5x avg) + momentum
 			var breakoutTFScores []domain.TimeframeScore
 			var breakoutFeaturesMap = make(map[string]*domain.MarketFeatures)
 
@@ -644,11 +617,12 @@ func (uc *ScreenerUsecase) process() {
 					volumes[i] = v
 				}
 
+				ema20 := indicators.CalculateEMA(prices, 20)
 				ema50 := indicators.CalculateEMA(prices, 50)
 				rsi := indicators.CalculateRSI(prices, 14)
 				atr := indicators.CalculateATR(highs, lows, prices, 14)
 				bb := indicators.CalculateBollingerBands(prices, 20, 2.0)
-				pivots := indicators.FindPivotLows(lows, 5, 2)
+				pivots := indicators.FindPivotHighs(highs, 5, 2) // Use pivot highs for resistance
 
 				features := ExtractFeatures(
 					prices, highs, lows, volumes,
@@ -662,15 +636,8 @@ func (uc *ScreenerUsecase) process() {
 					continue
 				}
 
-				// Calculate breakout score with volume spike
-				breakoutScore, resistance, distToRes := CalculateBreakoutScore(prices, highs, lows, volumes, bb.Upper, bb.Lower, features)
-				
-				// Store resistance info (use first TF as reference)
-				if coin.ResistancePrice == 0 {
-					coin.ResistancePrice = resistance
-					coin.DistToResistance = distToRes
-				}
-
+				// Calculate breakout score
+				breakoutScore := CalculateBreakoutScore(prices, highs, volumes, ema20, ema50, rsi, features)
 				breakoutTFScores = append(breakoutTFScores, domain.TimeframeScore{
 					TF:    tf,
 					Score: breakoutScore,
@@ -685,42 +652,72 @@ func (uc *ScreenerUsecase) process() {
 				breakoutConfluence := 0
 				var breakoutPrimaryFeatures *domain.MarketFeatures
 
-				// Count TFs with breakout signal (score >= 40)
+				// Check both TFs for breakout signals
+				confirmedBreakouts := 0
+				testingBreakouts := 0
+
+				for _, tf := range breakoutTimeframes {
+					feat, ok := breakoutFeaturesMap[tf]
+					if !ok {
+						continue
+					}
+
+					// Breakout criteria:
+					// 1. Price breaking recent highs
+					// 2. Volume spike (>1.5x average)
+					// 3. RSI > 50 (bullish momentum)
+					// 4. Price above EMA20
+					
+					isBreakingOut := feat.OverExtEma > 0.01 && !feat.IsAboveUpperBand // Above EMA but not overextended
+					hasVolume := feat.VolumeDeclineRatio < -0.3 // Volume increasing (negative ratio = volume up)
+					hasMomentum := feat.RSI > 50 && feat.RSI < 75 // Strong but not overbought
+					
+					if isBreakingOut && hasVolume && hasMomentum {
+						confirmedBreakouts++
+						breakoutConfluence = 2
+					} else if (isBreakingOut && hasVolume) || (isBreakingOut && hasMomentum) {
+						testingBreakouts++
+						if breakoutConfluence < 2 {
+							breakoutConfluence = 1
+						}
+					}
+
+					if breakoutPrimaryFeatures == nil {
+						breakoutPrimaryFeatures = feat
+					}
+				}
+
 				for _, ts := range breakoutTFScores {
 					breakoutTotalScore += ts.Score
-					if ts.Score >= 40 {
-						breakoutConfluence++
-					}
 				}
 
 				breakoutAvgScore := breakoutTotalScore / float64(len(breakoutTFScores))
 
-				// Find primary features (highest scoring TF)
-				maxScore := 0.0
-				for tf, feat := range breakoutFeaturesMap {
-					for _, ts := range breakoutTFScores {
-						if ts.TF == tf && ts.Score > maxScore {
-							maxScore = ts.Score
-							breakoutPrimaryFeatures = feat
-						}
-					}
+				// Multiplier based on confirmation
+				var breakoutMultiplier float64
+				if confirmedBreakouts >= 2 {
+					breakoutMultiplier = 1.5 // Strong breakout confirmed on both TFs
+				} else if confirmedBreakouts >= 1 || testingBreakouts >= 2 {
+					breakoutMultiplier = 1.2 // Decent breakout
+				} else {
+					breakoutMultiplier = 1.0
 				}
 
-				coin.BreakoutScore = breakoutAvgScore
+				coin.BreakoutScore = breakoutAvgScore * breakoutMultiplier
+				if coin.BreakoutScore > 100 {
+					coin.BreakoutScore = 100
+				}
 				coin.BreakoutTFScores = breakoutTFScores
 				coin.BreakoutFeatures = breakoutPrimaryFeatures
 
-				// Breakout Status: BREAKOUT (confirmed), TESTING (near resistance), WAIT (approaching)
+				// Breakout Status: BREAKOUT (confirmed), TESTING (approaching), WAIT (watching)
 				if breakoutPrimaryFeatures != nil {
-					// Check for volume spike (critical for breakout)
-					hasVolumeSpike := coin.VolumeRatio >= 1.5 || breakoutPrimaryFeatures.VolumeDeclineRatio < 0.8 // Increasing volume
-
-					if coin.DistToResistance <= 0 && hasVolumeSpike && coin.BreakoutScore >= 60 {
-						coin.BreakoutStatus = "BREAKOUT" // Confirmed breakout with volume!
-					} else if coin.DistToResistance <= 1.0 && coin.BreakoutScore >= 45 {
+					if confirmedBreakouts >= 2 && coin.BreakoutScore >= 50 {
+						coin.BreakoutStatus = "BREAKOUT" // Confirmed breakout!
+					} else if confirmedBreakouts >= 1 && coin.BreakoutScore >= 40 {
 						coin.BreakoutStatus = "TESTING" // Testing resistance
-					} else if coin.BreakoutScore >= 35 {
-						coin.BreakoutStatus = "WAIT" // Approaching resistance
+					} else if testingBreakouts >= 1 && coin.BreakoutScore >= 30 {
+						coin.BreakoutStatus = "WAIT" // Watching for breakout
 					}
 				}
 			}

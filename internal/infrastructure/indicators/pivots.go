@@ -40,6 +40,41 @@ func FindPivotLows(lows []float64, leftBars, rightBars int) []Pivot {
 	return pivots
 }
 
+// FindPivotHighs identifies pivot highs in the price data (for resistance).
+func FindPivotHighs(highs []float64, leftBars, rightBars int) []Pivot {
+	var pivots []Pivot
+	length := len(highs)
+
+	for i := leftBars; i < length-rightBars; i++ {
+		currentHigh := highs[i]
+		isPivot := true
+
+		// Check left
+		for j := 1; j <= leftBars; j++ {
+			if highs[i-j] >= currentHigh {
+				isPivot = false
+				break
+			}
+		}
+
+		// Check right
+		if isPivot {
+			for j := 1; j <= rightBars; j++ {
+				if highs[i+j] >= currentHigh {
+					isPivot = false
+					break
+				}
+			}
+		}
+
+		if isPivot {
+			pivots = append(pivots, Pivot{Index: i, Price: currentHigh})
+		}
+	}
+
+	return pivots
+}
+
 // GetNearestSupport finds the nearest support pivot below the current price (conceptually).
 // The original logic just returned the last pivot before currentIndex.
 func GetNearestSupport(pivots []Pivot, currentIndex int) *Pivot {
