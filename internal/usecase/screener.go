@@ -101,10 +101,12 @@ func (uc *ScreenerUsecase) process() {
 	// Core timeframes for scalping: 1m + 5m
 	// Intraday timeframes: 15m + 1h
 	// Pullback setup: 5m + 15m (trend), 1m + 3m (execution)
+	// Breakout hunter: 15m + 1h (detection)
 	coreTimeframes := []string{"1m", "5m"}
 	intradayTimeframes := []string{"15m", "1h"}
 	pullbackSetupTFs := []string{"5m", "15m"}
 	pullbackExecTFs := []string{"1m", "3m"}
+	breakoutTimeframes := []string{"15m", "1h"}
 
 	for _, sym := range targetSymbols {
 		wg.Add(1)
@@ -328,6 +330,10 @@ func (uc *ScreenerUsecase) process() {
 				AtrPercent:         0,
 				BbWidth:            0,
 				VolumeRatio:        0,
+				// Initialize breakout fields with defaults
+				BreakoutScore:      0,
+				ResistancePrice:    0,
+				DistToResistance:   0,
 			}
 
 			// === INTRADAY STATUS (15m + 1h) - SHORT ONLY ===
@@ -607,6 +613,114 @@ func (uc *ScreenerUsecase) process() {
 						coin.PullbackStatus = "BOUNCE" // Bounce starting
 					} else if coin.PullbackScore >= 30 {
 						coin.PullbackStatus = "WAIT" // Waiting for confirmation
+					}
+				}
+			}
+
+			// === BREAKOUT HUNTER (15m + 1h) ===
+			// Detect resistance breakout with VOLUME SPIKE confirmation
+			var breakoutTFScores []domain.TimeframeScore
+			var breakoutFeaturesMap = make(map[string]*domain.MarketFeatures)
+
+			for _, tf := range breakoutTimeframes {
+				rawKlines, err := uc.binanceClient.GetKlines(symbol, tf, 100)
+				if err != nil || len(rawKlines) < 50 {
+					continue
+				}
+
+				prices := make([]float64, len(rawKlines))
+				highs := make([]float64, len(rawKlines))
+				lows := make([]float64, len(rawKlines))
+				volumes := make([]float64, len(rawKlines))
+
+				for i, k := range rawKlines {
+					h, _ := parseValue(k[2])
+					l, _ := parseValue(k[3])
+					c, _ := parseValue(k[4])
+					v, _ := parseValue(k[5])
+					prices[i] = c
+					highs[i] = h
+					lows[i] = l
+					volumes[i] = v
+				}
+
+				ema50 := indicators.CalculateEMA(prices, 50)
+				rsi := indicators.CalculateRSI(prices, 14)
+				atr := indicators.CalculateATR(highs, lows, prices, 14)
+				bb := indicators.CalculateBollingerBands(prices, 20, 2.0)
+				pivots := indicators.FindPivotLows(lows, 5, 2)
+
+				features := ExtractFeatures(
+					prices, highs, lows, volumes,
+					tickerMap[symbol],
+					ema50, make([]float64, len(prices)), rsi,
+					bb, atr, pivots,
+					funding, 0,
+				)
+
+				if features == nil {
+					continue
+				}
+
+				// Calculate breakout score with volume spike
+				breakoutScore, resistance, distToRes := CalculateBreakoutScore(prices, highs, lows, volumes, bb.Upper, bb.Lower, features)
+				
+				// Store resistance info (use first TF as reference)
+				if coin.ResistancePrice == 0 {
+					coin.ResistancePrice = resistance
+					coin.DistToResistance = distToRes
+				}
+
+				breakoutTFScores = append(breakoutTFScores, domain.TimeframeScore{
+					TF:    tf,
+					Score: breakoutScore,
+					RSI:   features.RSI,
+				})
+				breakoutFeaturesMap[tf] = features
+			}
+
+			// Evaluate Breakout Setup
+			if len(breakoutTFScores) >= 2 {
+				var breakoutTotalScore float64
+				breakoutConfluence := 0
+				var breakoutPrimaryFeatures *domain.MarketFeatures
+
+				// Count TFs with breakout signal (score >= 40)
+				for _, ts := range breakoutTFScores {
+					breakoutTotalScore += ts.Score
+					if ts.Score >= 40 {
+						breakoutConfluence++
+					}
+				}
+
+				breakoutAvgScore := breakoutTotalScore / float64(len(breakoutTFScores))
+
+				// Find primary features (highest scoring TF)
+				maxScore := 0.0
+				for tf, feat := range breakoutFeaturesMap {
+					for _, ts := range breakoutTFScores {
+						if ts.TF == tf && ts.Score > maxScore {
+							maxScore = ts.Score
+							breakoutPrimaryFeatures = feat
+						}
+					}
+				}
+
+				coin.BreakoutScore = breakoutAvgScore
+				coin.BreakoutTFScores = breakoutTFScores
+				coin.BreakoutFeatures = breakoutPrimaryFeatures
+
+				// Breakout Status: BREAKOUT (confirmed), TESTING (near resistance), WAIT (approaching)
+				if breakoutPrimaryFeatures != nil {
+					// Check for volume spike (critical for breakout)
+					hasVolumeSpike := coin.VolumeRatio >= 1.5 || breakoutPrimaryFeatures.VolumeDeclineRatio < 0.8 // Increasing volume
+
+					if coin.DistToResistance <= 0 && hasVolumeSpike && coin.BreakoutScore >= 60 {
+						coin.BreakoutStatus = "BREAKOUT" // Confirmed breakout with volume!
+					} else if coin.DistToResistance <= 1.0 && coin.BreakoutScore >= 45 {
+						coin.BreakoutStatus = "TESTING" // Testing resistance
+					} else if coin.BreakoutScore >= 35 {
+						coin.BreakoutStatus = "WAIT" // Approaching resistance
 					}
 				}
 			}

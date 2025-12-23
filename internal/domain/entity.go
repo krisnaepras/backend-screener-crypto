@@ -71,4 +71,11 @@ type CoinData struct {
 	AtrPercent         float64             `json:"atrPercent"`         // ATR as % of price
 	BbWidth            float64             `json:"bbWidth"`            // Bollinger Band width %
 	VolumeRatio        float64             `json:"volumeRatio"`        // Current vol vs avg
+	// Breakout Hunter (15m + 1h) with Volume Spike confirmation
+	BreakoutStatus     string              `json:"breakoutStatus,omitempty"` // "BREAKOUT", "TESTING", "WAIT"
+	BreakoutScore      float64             `json:"breakoutScore"`
+	BreakoutTFScores   []TimeframeScore    `json:"breakoutTfScores,omitempty"`
+	BreakoutFeatures   *MarketFeatures     `json:"breakoutFeatures,omitempty"`
+	ResistancePrice    float64             `json:"resistancePrice"`    // Detected resistance level
+	DistToResistance   float64             `json:"distToResistance"`   // % distance to resistance
 }

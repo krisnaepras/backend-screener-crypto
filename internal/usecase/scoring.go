@@ -509,3 +509,128 @@ func CalculatePullbackScore(prices, highs, lows, volumes, ema20, ema50, rsi, atr
 
 	return score, atrPercent, bbWidth, volumeRatio, volatilityScore
 }
+
+// CalculateBreakoutScore computes score for Breakout Hunter setup
+// Criteria: Near resistance + Volume spike + Momentum + Breakout confirmation
+func CalculateBreakoutScore(prices, highs, lows, volumes, bbUpper, bbLower []float64, features *domain.MarketFeatures) (float64, float64, float64) {
+	if len(prices) < 50 || len(highs) < 20 || len(volumes) < 20 {
+		return 0, 0, 0
+	}
+
+	lastIdx := len(prices) - 1
+	currentPrice := prices[lastIdx]
+	currentHigh := highs[lastIdx]
+
+	// Find resistance level (recent high in last 50 candles)
+	resistance := highs[lastIdx-20]
+	for i := lastIdx - 20; i <= lastIdx; i++ {
+		if highs[i] > resistance {
+			resistance = highs[i]
+		}
+	}
+
+	// Distance to resistance
+	distToResistance := 0.0
+	if resistance > 0 {
+		distToResistance = ((resistance - currentPrice) / currentPrice) * 100
+	}
+
+	score := 0.0
+
+	// === PROXIMITY TO RESISTANCE (0-30) ===
+	proximityScore := 0.0
+	if distToResistance <= 0 {
+		// Already broken resistance!
+		proximityScore = 30
+	} else if distToResistance <= 0.5 {
+		// Very close to resistance
+		proximityScore = 25
+	} else if distToResistance <= 1.0 {
+		// Close to resistance
+		proximityScore = 20
+	} else if distToResistance <= 2.0 {
+		// Approaching resistance
+		proximityScore = 15
+	} else if distToResistance <= 3.0 {
+		// Within reach
+		proximityScore = 10
+	}
+	score += proximityScore
+
+	// === VOLUME SPIKE (0-35) - Critical for breakout confirmation ===
+	volumeScore := 0.0
+	avgVolume := 0.0
+	for i := lastIdx - 19; i < lastIdx; i++ {
+		avgVolume += volumes[i]
+	}
+	avgVolume /= 20
+
+	currentVolume := volumes[lastIdx]
+	volumeRatio := 1.0
+	if avgVolume > 0 {
+		volumeRatio = currentVolume / avgVolume
+	}
+
+	// Volume spike is KEY for breakout
+	if volumeRatio >= 3.0 {
+		volumeScore = 35 // Huge volume spike!
+	} else if volumeRatio >= 2.5 {
+		volumeScore = 30
+	} else if volumeRatio >= 2.0 {
+		volumeScore = 25
+	} else if volumeRatio >= 1.5 {
+		volumeScore = 20
+	} else if volumeRatio >= 1.2 {
+		volumeScore = 10
+	}
+	score += volumeScore
+
+	// === MOMENTUM (0-20) ===
+	momentumScore := 0.0
+	// RSI > 50 = bullish momentum
+	if features.RSI >= 60 {
+		momentumScore += 15
+	} else if features.RSI >= 50 {
+		momentumScore += 10
+	} else if features.RSI >= 45 {
+		momentumScore += 5
+	}
+
+	// Price trending up
+	if currentPrice > prices[lastIdx-5] {
+		momentumScore += 5
+	}
+
+	if momentumScore > 20 {
+		momentumScore = 20
+	}
+	score += momentumScore
+
+	// === BREAKOUT CONFIRMATION (0-15) ===
+	breakoutScore := 0.0
+	// Price above resistance
+	if currentPrice > resistance {
+		breakoutScore += 10
+	}
+
+	// High above resistance (strong breakout)
+	if currentHigh > resistance*1.01 {
+		breakoutScore += 5
+	}
+
+	// Above upper Bollinger Band (breakout strength)
+	if len(bbUpper) > lastIdx && currentPrice > bbUpper[lastIdx] {
+		// Already counted in proximity
+	}
+
+	if breakoutScore > 15 {
+		breakoutScore = 15
+	}
+	score += breakoutScore
+
+	if score > 100 {
+		score = 100
+	}
+
+	return score, resistance, distToResistance
+}
