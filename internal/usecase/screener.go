@@ -131,14 +131,17 @@ func (uc *ScreenerUsecase) process() {
 				prices := make([]float64, len(rawKlines))
 				highs := make([]float64, len(rawKlines))
 				lows := make([]float64, len(rawKlines))
+				volumes := make([]float64, len(rawKlines))
 
 				for i, k := range rawKlines {
 					h, _ := parseValue(k[2])
 					l, _ := parseValue(k[3])
 					c, _ := parseValue(k[4])
+					v, _ := parseValue(k[5]) // Volume is at index 5
 					prices[i] = c
 					highs[i] = h
 					lows[i] = l
+					volumes[i] = v
 				}
 
 				// Calculate Indicators
@@ -150,7 +153,7 @@ func (uc *ScreenerUsecase) process() {
 				pivots := indicators.FindPivotLows(lows, 5, 2)
 
 				features := ExtractFeatures(
-					prices, highs, lows,
+					prices, highs, lows, volumes,
 					tickerMap[symbol],
 					ema50, vwap, rsi,
 					bb, atr, pivots,
@@ -197,9 +200,11 @@ func (uc *ScreenerUsecase) process() {
 					continue
 				}
 
-				// A TF is "aligned" if it shows overbought signals
-				// Lowered thresholds for less strict but still valid reversal
-				isAligned := feat.RSI > 60 || feat.OverExtEma > 0.02 || feat.IsAboveUpperBand
+				// A TF is "aligned" if it shows overbought signals OR losing momentum
+				// Added momentum loss signals for better reversal detection
+				isOverbought := feat.RSI > 60 || feat.OverExtEma > 0.02 || feat.IsAboveUpperBand
+				hasLosingMomentum := feat.IsLosingMomentum || feat.HasRsiDivergence || feat.HasVolumeDivergence
+				isAligned := isOverbought || hasLosingMomentum
 				if isAligned {
 					confluenceCount++
 				}

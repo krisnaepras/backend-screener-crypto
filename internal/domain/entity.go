@@ -17,6 +17,13 @@ type MarketFeatures struct {
 	IsBreakdown        bool     `json:"isBreakdown"`
 	IsRetest           bool     `json:"isRetest"`
 	IsRetestFail       bool     `json:"isRetestFail"`
+	// Loss of Momentum indicators
+	HasRsiDivergence    bool    `json:"hasRsiDivergence"`    // Price HH, RSI LH
+	HasVolumeDivergence bool    `json:"hasVolumeDivergence"` // Price up, volume down
+	MomentumSlope       float64 `json:"momentumSlope"`       // Rate of RSI change (negative = slowing)
+	RsiSlope            float64 `json:"rsiSlope"`            // RSI trend direction
+	VolumeDeclineRatio  float64 `json:"volumeDeclineRatio"`  // Current vs avg volume
+	IsLosingMomentum    bool    `json:"isLosingMomentum"`    // Combined momentum loss signal
 }
 
 // TimeframeScore stores score for a single timeframe.

@@ -105,12 +105,33 @@ func CalculateScore(features *domain.MarketFeatures) float64 {
 		sStruct = 20
 	}
 
-	return sOver + sCrowd + sExhaust + sStruct
+	// Momentum Loss Score: 0-15
+	sMomentum := 0.0
+	if features.IsLosingMomentum {
+		sMomentum += 8
+	}
+	if features.HasRsiDivergence {
+		sMomentum += 5
+	}
+	if features.HasVolumeDivergence {
+		sMomentum += 3
+	}
+	if features.RsiSlope < -3 {
+		sMomentum += 4
+	} else if features.RsiSlope < -1 {
+		sMomentum += 2
+	}
+
+	if sMomentum > 15 {
+		sMomentum = 15
+	}
+
+	return sOver + sCrowd + sExhaust + sStruct + sMomentum
 }
 
 // ExtractFeatures computes indicators and extracts features for a coin.
 func ExtractFeatures(
-	prices, highs, lows []float64,
+	prices, highs, lows, volumes []float64,
 	ticker binance.Ticker24h,
 	ema50, vwap, rsi []float64,
 	bb indicators.BollingerBands,
@@ -202,22 +223,31 @@ func ExtractFeatures(
 	// Ticker pct change
 	pctChange, _ := strconvToFloat(ticker.PriceChangePercent)
 
+	// Momentum Loss Detection
+	momentumSignals := indicators.DetectMomentumLoss(prices, highs, volumes, rsi)
+
 	return &domain.MarketFeatures{
-		PctChange24h:       pctChange,
-		OverExtEma:         overExtEma,
-		OverExtVwap:        overExtVwap,
-		IsAboveUpperBand:   isAboveUpperBand,
-		CandleRangeRatio:   0, // Placeholder
-		RSI:                currentRsi,
-		IsRsiBearishDiv:    false,
-		RejectionWickRatio: rejectionWickRatio,
-		FundingRate:        fundingRate,
-		OpenInterestDelta:  oiDelta,
-		NearestSupport:     supportPrice,
-		DistToSupportATR:   distToSupportATR,
-		IsBreakdown:        isBrk,
-		IsRetest:           isRetestZone,
-		IsRetestFail:       false,
+		PctChange24h:        pctChange,
+		OverExtEma:          overExtEma,
+		OverExtVwap:         overExtVwap,
+		IsAboveUpperBand:    isAboveUpperBand,
+		CandleRangeRatio:    0, // Placeholder
+		RSI:                 currentRsi,
+		IsRsiBearishDiv:     momentumSignals.HasRsiDivergence,
+		RejectionWickRatio:  rejectionWickRatio,
+		FundingRate:         fundingRate,
+		OpenInterestDelta:   oiDelta,
+		NearestSupport:      supportPrice,
+		DistToSupportATR:    distToSupportATR,
+		IsBreakdown:         isBrk,
+		IsRetest:            isRetestZone,
+		IsRetestFail:        false,
+		HasRsiDivergence:    momentumSignals.HasRsiDivergence,
+		HasVolumeDivergence: momentumSignals.HasVolumeDivergence,
+		MomentumSlope:       momentumSignals.MomentumSlope,
+		RsiSlope:            momentumSignals.RsiSlope,
+		VolumeDeclineRatio:  momentumSignals.VolumeDeclineRatio,
+		IsLosingMomentum:    momentumSignals.IsLosingMomentum,
 	}
 }
 
