@@ -98,9 +98,10 @@ func (uc *ScreenerUsecase) process() {
 	
 	log.Printf("Found %d active symbols", len(targetSymbols))
 
-	// Core timeframes for multi-TF confluence: 1m + 5m only
-	// Focus on short-term reversal signals for quicker entries
+	// Core timeframes for scalping: 1m + 5m
+	// Intraday timeframes: 15m + 1h
 	coreTimeframes := []string{"1m", "5m"}
+	intradayTimeframes := []string{"15m", "1h"}
 
 	for _, sym := range targetSymbols {
 		wg.Add(1)
@@ -117,7 +118,7 @@ func (uc *ScreenerUsecase) process() {
 			var featuresMap = make(map[string]*domain.MarketFeatures)
 			var pricesMap = make(map[string]float64)
 
-			// Fetch all core timeframes
+			// === SCALPING ANALYSIS (1m + 5m) ===
 			for _, tf := range coreTimeframes {
 				rawKlines, err := uc.binanceClient.GetKlines(symbol, tf, 100)
 				if err != nil {
@@ -181,7 +182,64 @@ func (uc *ScreenerUsecase) process() {
 				pricesMap[tf] = prices[len(prices)-1]
 			}
 
-			// Need at least 2 TFs to evaluate
+			// === INTRADAY ANALYSIS (15m + 1h) ===
+			var intradayTFScores []domain.TimeframeScore
+			var intradayFeaturesMap = make(map[string]*domain.MarketFeatures)
+
+			for _, tf := range intradayTimeframes {
+				rawKlines, err := uc.binanceClient.GetKlines(symbol, tf, 100)
+				if err != nil {
+					continue
+				}
+				if len(rawKlines) < 50 {
+					continue
+				}
+
+				prices := make([]float64, len(rawKlines))
+				highs := make([]float64, len(rawKlines))
+				lows := make([]float64, len(rawKlines))
+				volumes := make([]float64, len(rawKlines))
+
+				for i, k := range rawKlines {
+					h, _ := parseValue(k[2])
+					l, _ := parseValue(k[3])
+					c, _ := parseValue(k[4])
+					v, _ := parseValue(k[5])
+					prices[i] = c
+					highs[i] = h
+					lows[i] = l
+					volumes[i] = v
+				}
+
+				ema50 := indicators.CalculateEMA(prices, 50)
+				vwap := make([]float64, len(prices))
+				rsi := indicators.CalculateRSI(prices, 14)
+				atr := indicators.CalculateATR(highs, lows, prices, 14)
+				bb := indicators.CalculateBollingerBands(prices, 20, 2.0)
+				pivots := indicators.FindPivotLows(lows, 5, 2)
+
+				features := ExtractFeatures(
+					prices, highs, lows, volumes,
+					tickerMap[symbol],
+					ema50, vwap, rsi,
+					bb, atr, pivots,
+					funding, 0,
+				)
+
+				if features == nil {
+					continue
+				}
+
+				scoreResult := CalculateScore(features)
+				intradayTFScores = append(intradayTFScores, domain.TimeframeScore{
+					TF:    tf,
+					Score: scoreResult,
+					RSI:   features.RSI,
+				})
+				intradayFeaturesMap[tf] = features
+			}
+
+			// Need at least 2 TFs to evaluate scalping
 			if len(tfScores) < 2 {
 				return
 			}
@@ -261,6 +319,64 @@ func (uc *ScreenerUsecase) process() {
 				PriceChangePercent: primaryFeatures.PctChange24h,
 				FundingRate:        funding,
 				Features:           primaryFeatures,
+				IntradayTFScores:   intradayTFScores,
+			}
+
+			// === INTRADAY STATUS (15m + 1h) ===
+			if len(intradayTFScores) >= 2 {
+				var intradayTotalScore float64
+				intradayConfluence := 0
+				var intradayPrimaryFeatures *domain.MarketFeatures
+
+				for _, tf := range intradayTimeframes {
+					feat, ok := intradayFeaturesMap[tf]
+					if !ok {
+						continue
+					}
+
+					isOverbought := feat.RSI > 60 || feat.OverExtEma > 0.02 || feat.IsAboveUpperBand
+					hasLosingMomentum := feat.IsLosingMomentum || feat.HasRsiDivergence || feat.HasVolumeDivergence
+					if isOverbought || hasLosingMomentum {
+						intradayConfluence++
+					}
+
+					for _, ts := range intradayTFScores {
+						if ts.TF == tf {
+							intradayTotalScore += ts.Score
+							if intradayPrimaryFeatures == nil || ts.Score > CalculateScore(intradayPrimaryFeatures) {
+								intradayPrimaryFeatures = feat
+							}
+						}
+					}
+				}
+
+				intradayAvgScore := intradayTotalScore / float64(len(intradayTFScores))
+				
+				// Intraday confluence multiplier
+				var intradayMultiplier float64
+				switch intradayConfluence {
+				case 2:
+					intradayMultiplier = 1.3
+				case 1:
+					intradayMultiplier = 1.15
+				default:
+					intradayMultiplier = 1.0
+				}
+
+				coin.IntradayScore = intradayAvgScore * intradayMultiplier
+				if coin.IntradayScore > 100 {
+					coin.IntradayScore = 100
+				}
+				coin.IntradayFeatures = intradayPrimaryFeatures
+
+				// Intraday Status: HOT (ready), WARM (preparing), COOL (watching)
+				if intradayConfluence >= 2 && coin.IntradayScore >= 45 {
+					coin.IntradayStatus = "HOT"
+				} else if intradayConfluence >= 1 && coin.IntradayScore >= 35 {
+					coin.IntradayStatus = "WARM"
+				} else if coin.IntradayScore >= 30 {
+					coin.IntradayStatus = "COOL"
+				}
 			}
 
 			// Determine Status based on 1m + 5m confluence

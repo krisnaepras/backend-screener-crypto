@@ -47,7 +47,7 @@ type CoinData struct {
 	Symbol             string              `json:"symbol"`
 	Price              float64             `json:"price"`
 	Score              float64             `json:"score"`                    // Combined confluence score
-	Status             string              `json:"status"`                   // e.g., "SETUP", "TRIGGER", "AVOID"
+	Status             string              `json:"status"`                   // e.g., "SETUP", "TRIGGER", "WATCH"
 	TriggerTF          string              `json:"triggerTf,omitempty"`      // Primary TF that triggered
 	ConfluenceCount    int                 `json:"confluenceCount"`          // How many TFs aligned (1-3)
 	TFScores           []TimeframeScore    `json:"tfScores,omitempty"`       // Scores per TF
@@ -55,5 +55,10 @@ type CoinData struct {
 	PriceChangePercent float64             `json:"priceChangePercent"`
 	FundingRate        float64             `json:"fundingRate"`
 	BasisSpread        float64             `json:"basisSpread"`
-	Features           *MarketFeatures     `json:"features"` // Primary TF features
+	Features           *MarketFeatures     `json:"features"`                 // Primary TF features
+	// Intraday Setup (15m + 1h analysis)
+	IntradayStatus     string              `json:"intradayStatus,omitempty"` // "HOT", "WARM", "COOL"
+	IntradayScore      float64             `json:"intradayScore"`            // Score based on 15m + 1h
+	IntradayTFScores   []TimeframeScore    `json:"intradayTfScores,omitempty"`
+	IntradayFeatures   *MarketFeatures     `json:"intradayFeatures,omitempty"`
 }

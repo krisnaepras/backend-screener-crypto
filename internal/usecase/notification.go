@@ -8,7 +8,7 @@ import (
 	"screener-backend/internal/domain"
 )
 
-// sendNotificationsForTriggers sends FCM notifications for coins with TRIGGER and SETUP status
+// sendNotificationsForTriggers sends FCM notifications for coins with TRIGGER status only
 func (uc *ScreenerUsecase) sendNotificationsForTriggers(coins []domain.CoinData) {
 	if uc.fcmClient == nil || !uc.fcmClient.IsEnabled() {
 		return // FCM not configured
@@ -23,8 +23,8 @@ func (uc *ScreenerUsecase) sendNotificationsForTriggers(coins []domain.CoinData)
 	cooldownDuration := 5 * time.Minute
 
 	for _, coin := range coins {
-		// Notify only for TRIGGER and SETUP (not WATCH)
-		if coin.Status != "TRIGGER" && coin.Status != "SETUP" {
+		// Notify only for TRIGGER (entry ready!)
+		if coin.Status != "TRIGGER" {
 			continue
 		}
 
@@ -37,20 +37,13 @@ func (uc *ScreenerUsecase) sendNotificationsForTriggers(coins []domain.CoinData)
 			continue // Skip, still in cooldown
 		}
 
-		// Prepare notification based on status
+		// Prepare notification
 		symbol := coin.Symbol
 		displaySymbol := symbol[:len(symbol)-4] // Remove "USDT"
 		
-		var title, emoji string
-		if coin.Status == "TRIGGER" {
-			emoji = "🚀"
-			title = fmt.Sprintf("%s %s TRIGGER - Entry Ready!", emoji, displaySymbol)
-		} else { // SETUP
-			emoji = "⚡"
-			title = fmt.Sprintf("%s %s SETUP - Preparing", emoji, displaySymbol)
-		}
+		title := fmt.Sprintf("🔥 %s TRIGGER - Entry Now!", displaySymbol)
 		
-		body := fmt.Sprintf("Score: %.0f | %dTF | Price: $%.5f | Change: %.2f%%", 
+		body := fmt.Sprintf("Score: %.0f | %dTF Aligned | $%.4f | +%.1f%%", 
 			coin.Score, coin.ConfluenceCount, coin.Price, coin.PriceChangePercent)
 
 		data := map[string]string{
@@ -58,7 +51,7 @@ func (uc *ScreenerUsecase) sendNotificationsForTriggers(coins []domain.CoinData)
 			"score":  fmt.Sprintf("%.2f", coin.Score),
 			"price":  fmt.Sprintf("%.5f", coin.Price),
 			"status": coin.Status,
-			"type":   coin.Status, // "TRIGGER" or "SETUP"
+			"type":   "TRIGGER",
 		}
 
 		// Send to all registered tokens
