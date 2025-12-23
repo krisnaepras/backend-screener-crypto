@@ -323,6 +323,11 @@ func (uc *ScreenerUsecase) process() {
 				FundingRate:        funding,
 				Features:           primaryFeatures,
 				IntradayTFScores:   intradayTFScores,
+				// Initialize volatility fields with defaults
+				VolatilityScore:    0,
+				AtrPercent:         0,
+				BbWidth:            0,
+				VolumeRatio:        0,
 			}
 
 			// === INTRADAY STATUS (15m + 1h) - SHORT ONLY ===
