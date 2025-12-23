@@ -805,6 +805,9 @@ func (uc *ScreenerUsecase) process() {
 	// Send FCM notifications for TRIGGER coins
 	uc.sendNotificationsForTriggers(computedCoins)
 	
+	// Send FCM notifications for BREAKOUT coins
+	uc.sendNotificationsForBreakouts(computedCoins)
+	
 	log.Printf("Cycle completed in %v. Processed %d coins.", time.Since(start), len(computedCoins))
 }
 
