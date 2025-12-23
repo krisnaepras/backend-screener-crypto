@@ -255,3 +255,137 @@ func ExtractFeatures(
 func strconvToFloat(s string) (float64, error) {
 	return strconv.ParseFloat(s, 64)
 }
+
+// CalculatePullbackScore computes score for Buy the Dip / Pullback Entry setup
+// Criteria: Uptrend + Pullback to support/EMA + Bounce signal
+func CalculatePullbackScore(prices, ema20, ema50, rsi []float64, features *domain.MarketFeatures) float64 {
+	if len(prices) < 50 || len(ema20) < 50 || len(ema50) < 50 || len(rsi) < 14 {
+		return 0
+	}
+
+	lastIdx := len(prices) - 1
+	currentPrice := prices[lastIdx]
+	currentEma20 := ema20[lastIdx]
+	currentEma50 := ema50[lastIdx]
+	currentRsi := rsi[lastIdx]
+
+	score := 0.0
+
+	// === TREND SCORE (0-30) ===
+	// Check if in uptrend: EMA20 > EMA50, price trending up
+	trendScore := 0.0
+
+	// EMA alignment (uptrend)
+	if currentEma20 > currentEma50 {
+		trendScore += 15 // EMAs aligned bullish
+	}
+
+	// Price above EMA50 (still in uptrend structure)
+	if currentPrice > currentEma50*0.98 { // Allow slight dip below EMA50
+		trendScore += 10
+	}
+
+	// Higher highs check (last 20 candles)
+	if lastIdx >= 20 {
+		recentHigh := prices[lastIdx-10]
+		olderHigh := prices[lastIdx-20]
+		for i := lastIdx - 10; i <= lastIdx; i++ {
+			if prices[i] > recentHigh {
+				recentHigh = prices[i]
+			}
+		}
+		for i := lastIdx - 20; i < lastIdx-10; i++ {
+			if prices[i] > olderHigh {
+				olderHigh = prices[i]
+			}
+		}
+		if recentHigh >= olderHigh*0.98 { // Recent high is near or above older high
+			trendScore += 5
+		}
+	}
+
+	if trendScore > 30 {
+		trendScore = 30
+	}
+	score += trendScore
+
+	// === PULLBACK SCORE (0-30) ===
+	// Check if price has pulled back but not crashed
+	pullbackScore := 0.0
+
+	// RSI in pullback zone (30-45 ideal for dip buying)
+	if currentRsi >= 30 && currentRsi <= 40 {
+		pullbackScore += 20 // Ideal oversold bounce zone
+	} else if currentRsi > 40 && currentRsi <= 50 {
+		pullbackScore += 15 // Mild pullback
+	} else if currentRsi >= 25 && currentRsi < 30 {
+		pullbackScore += 10 // Very oversold, risky but potential
+	}
+
+	// Price pulled back to EMA zone (near EMA20 or between EMA20-EMA50)
+	distToEma20 := (currentPrice - currentEma20) / currentEma20
+	if distToEma20 >= -0.02 && distToEma20 <= 0.01 {
+		pullbackScore += 10 // Price touching/near EMA20 (support)
+	} else if distToEma20 >= -0.03 && distToEma20 < -0.02 {
+		pullbackScore += 5 // Slight dip below EMA20
+	}
+
+	if pullbackScore > 30 {
+		pullbackScore = 30
+	}
+	score += pullbackScore
+
+	// === BOUNCE SIGNAL SCORE (0-25) ===
+	bounceScore := 0.0
+
+	// RSI bouncing (current RSI higher than recent low)
+	if lastIdx >= 5 {
+		minRsi := rsi[lastIdx-5]
+		for i := lastIdx - 5; i < lastIdx; i++ {
+			if rsi[i] < minRsi {
+				minRsi = rsi[i]
+			}
+		}
+		if currentRsi > minRsi+3 { // RSI bouncing up
+			bounceScore += 15
+		}
+	}
+
+	// Price bounce (current price higher than recent low)
+	if lastIdx >= 5 {
+		minPrice := prices[lastIdx-5]
+		for i := lastIdx - 5; i < lastIdx; i++ {
+			if prices[i] < minPrice {
+				minPrice = prices[i]
+			}
+		}
+		if currentPrice > minPrice*1.005 { // Price bounced at least 0.5%
+			bounceScore += 10
+		}
+	}
+
+	if bounceScore > 25 {
+		bounceScore = 25
+	}
+	score += bounceScore
+
+	// === RISK SCORE (0-15) ===
+	riskScore := 0.0
+
+	// Near support (good risk/reward)
+	if features.DistToSupportATR != nil && *features.DistToSupportATR < 2.0 {
+		riskScore += 10 // Close to support = tight stop loss
+	}
+
+	// Low rejection wick (not being sold off)
+	if features.RejectionWickRatio < 0.3 {
+		riskScore += 5
+	}
+
+	if riskScore > 15 {
+		riskScore = 15
+	}
+	score += riskScore
+
+	return score
+}

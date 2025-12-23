@@ -100,8 +100,11 @@ func (uc *ScreenerUsecase) process() {
 
 	// Core timeframes for scalping: 1m + 5m
 	// Intraday timeframes: 15m + 1h
+	// Pullback setup: 5m + 15m (trend), 1m + 3m (execution)
 	coreTimeframes := []string{"1m", "5m"}
 	intradayTimeframes := []string{"15m", "1h"}
+	pullbackSetupTFs := []string{"5m", "15m"}
+	pullbackExecTFs := []string{"1m", "3m"}
 
 	for _, sym := range targetSymbols {
 		wg.Add(1)
@@ -391,6 +394,196 @@ func (uc *ScreenerUsecase) process() {
 						} else if coin.IntradayScore >= 30 {
 							coin.IntradayStatus = "COOL"
 						}
+					}
+				}
+			}
+
+			// === PULLBACK ENTRY (Buy the Dip) ===
+			// Setup di 5m/15m (trend confirmation), eksekusi di 1m/3m (entry timing)
+			// Criteria: Uptrend + Pullback to support/EMA + Bounce signal
+			var pullbackTFScores []domain.TimeframeScore
+			var pullbackFeaturesMap = make(map[string]*domain.MarketFeatures)
+
+			// Analyze setup timeframes (5m, 15m) for trend
+			for _, tf := range pullbackSetupTFs {
+				rawKlines, err := uc.binanceClient.GetKlines(symbol, tf, 100)
+				if err != nil || len(rawKlines) < 50 {
+					continue
+				}
+
+				prices := make([]float64, len(rawKlines))
+				highs := make([]float64, len(rawKlines))
+				lows := make([]float64, len(rawKlines))
+				volumes := make([]float64, len(rawKlines))
+
+				for i, k := range rawKlines {
+					h, _ := parseValue(k[2])
+					l, _ := parseValue(k[3])
+					c, _ := parseValue(k[4])
+					v, _ := parseValue(k[5])
+					prices[i] = c
+					highs[i] = h
+					lows[i] = l
+					volumes[i] = v
+				}
+
+				ema20 := indicators.CalculateEMA(prices, 20)
+				ema50 := indicators.CalculateEMA(prices, 50)
+				rsi := indicators.CalculateRSI(prices, 14)
+				atr := indicators.CalculateATR(highs, lows, prices, 14)
+				bb := indicators.CalculateBollingerBands(prices, 20, 2.0)
+				pivots := indicators.FindPivotLows(lows, 5, 2)
+
+				features := ExtractFeatures(
+					prices, highs, lows, volumes,
+					tickerMap[symbol],
+					ema50, make([]float64, len(prices)), rsi,
+					bb, atr, pivots,
+					funding, 0,
+				)
+
+				if features == nil {
+					continue
+				}
+
+				// Calculate pullback score (different criteria)
+				pullbackScore := CalculatePullbackScore(prices, ema20, ema50, rsi, features)
+				pullbackTFScores = append(pullbackTFScores, domain.TimeframeScore{
+					TF:    tf,
+					Score: pullbackScore,
+					RSI:   features.RSI,
+				})
+				pullbackFeaturesMap[tf] = features
+			}
+
+			// Analyze execution timeframes (1m, 3m) for entry timing
+			for _, tf := range pullbackExecTFs {
+				rawKlines, err := uc.binanceClient.GetKlines(symbol, tf, 100)
+				if err != nil || len(rawKlines) < 50 {
+					continue
+				}
+
+				prices := make([]float64, len(rawKlines))
+				highs := make([]float64, len(rawKlines))
+				lows := make([]float64, len(rawKlines))
+				volumes := make([]float64, len(rawKlines))
+
+				for i, k := range rawKlines {
+					h, _ := parseValue(k[2])
+					l, _ := parseValue(k[3])
+					c, _ := parseValue(k[4])
+					v, _ := parseValue(k[5])
+					prices[i] = c
+					highs[i] = h
+					lows[i] = l
+					volumes[i] = v
+				}
+
+				ema20 := indicators.CalculateEMA(prices, 20)
+				ema50 := indicators.CalculateEMA(prices, 50)
+				rsi := indicators.CalculateRSI(prices, 14)
+				atr := indicators.CalculateATR(highs, lows, prices, 14)
+				bb := indicators.CalculateBollingerBands(prices, 20, 2.0)
+				pivots := indicators.FindPivotLows(lows, 5, 2)
+
+				features := ExtractFeatures(
+					prices, highs, lows, volumes,
+					tickerMap[symbol],
+					ema50, make([]float64, len(prices)), rsi,
+					bb, atr, pivots,
+					funding, 0,
+				)
+
+				if features == nil {
+					continue
+				}
+
+				pullbackScore := CalculatePullbackScore(prices, ema20, ema50, rsi, features)
+				pullbackTFScores = append(pullbackTFScores, domain.TimeframeScore{
+					TF:    tf,
+					Score: pullbackScore,
+					RSI:   features.RSI,
+				})
+				pullbackFeaturesMap[tf] = features
+			}
+
+			// Evaluate Pullback Setup
+			if len(pullbackTFScores) >= 2 {
+				var pullbackTotalScore float64
+				pullbackConfluence := 0
+				var pullbackPrimaryFeatures *domain.MarketFeatures
+
+				// Check setup TFs (5m, 15m) for uptrend confirmation
+				setupInUptrend := 0
+				for _, tf := range pullbackSetupTFs {
+					feat, ok := pullbackFeaturesMap[tf]
+					if !ok {
+						continue
+					}
+					// Uptrend: price above EMA, positive 24h change, RSI not extremely low
+					isUptrend := feat.OverExtEma > -0.02 && feat.PctChange24h > -2
+					isPullback := feat.RSI < 45 && feat.RSI > 20 // RSI pulled back but not crashed
+					
+					if isUptrend && isPullback {
+						setupInUptrend++
+					}
+				}
+
+				// Check execution TFs (1m, 3m) for bounce/reversal signal
+				hasEntrySignal := false
+				for _, tf := range pullbackExecTFs {
+					feat, ok := pullbackFeaturesMap[tf]
+					if !ok {
+						continue
+					}
+					// Entry signal: RSI bouncing from oversold, near support
+					isBouncing := feat.RSI > 30 && feat.RSI < 50 // Coming out of oversold
+					nearSupport := feat.DistToSupportATR != nil && *feat.DistToSupportATR < 1.5
+					hasReversal := !feat.IsBreakdown && feat.RejectionWickRatio < 0.3 // No strong rejection
+
+					if isBouncing || nearSupport || hasReversal {
+						hasEntrySignal = true
+						pullbackConfluence++
+					}
+					
+					if pullbackPrimaryFeatures == nil {
+						pullbackPrimaryFeatures = feat
+					}
+				}
+
+				for _, ts := range pullbackTFScores {
+					pullbackTotalScore += ts.Score
+				}
+
+				pullbackAvgScore := pullbackTotalScore / float64(len(pullbackTFScores))
+
+				// Multiplier based on setup quality
+				var pullbackMultiplier float64
+				if setupInUptrend >= 2 && hasEntrySignal {
+					pullbackMultiplier = 1.4 // Strong setup
+					pullbackConfluence = 2
+				} else if setupInUptrend >= 1 && hasEntrySignal {
+					pullbackMultiplier = 1.2 // Decent setup
+					pullbackConfluence = 1
+				} else {
+					pullbackMultiplier = 1.0
+				}
+
+				coin.PullbackScore = pullbackAvgScore * pullbackMultiplier
+				if coin.PullbackScore > 100 {
+					coin.PullbackScore = 100
+				}
+				coin.PullbackTFScores = pullbackTFScores
+				coin.PullbackFeatures = pullbackPrimaryFeatures
+
+				// Pullback Status: DIP (ready to buy), BOUNCE (confirming), WAIT (watching)
+				if pullbackPrimaryFeatures != nil && setupInUptrend >= 1 {
+					if pullbackConfluence >= 2 && coin.PullbackScore >= 45 {
+						coin.PullbackStatus = "DIP" // Ready to buy the dip!
+					} else if pullbackConfluence >= 1 && coin.PullbackScore >= 35 {
+						coin.PullbackStatus = "BOUNCE" // Bounce starting
+					} else if coin.PullbackScore >= 30 {
+						coin.PullbackStatus = "WAIT" // Waiting for confirmation
 					}
 				}
 			}

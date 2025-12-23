@@ -56,9 +56,14 @@ type CoinData struct {
 	FundingRate        float64             `json:"fundingRate"`
 	BasisSpread        float64             `json:"basisSpread"`
 	Features           *MarketFeatures     `json:"features"`                 // Primary TF features
-	// Intraday Setup (15m + 1h analysis)
+	// Intraday Setup (15m + 1h analysis) - SHORT
 	IntradayStatus     string              `json:"intradayStatus,omitempty"` // "HOT", "WARM", "COOL"
 	IntradayScore      float64             `json:"intradayScore"`            // Score based on 15m + 1h
 	IntradayTFScores   []TimeframeScore    `json:"intradayTfScores,omitempty"`
 	IntradayFeatures   *MarketFeatures     `json:"intradayFeatures,omitempty"`
+	// Pullback Entry (Buy the Dip) - setup 5m/15m, execution 1m/3m
+	PullbackStatus     string              `json:"pullbackStatus,omitempty"` // "DIP", "BOUNCE", "WAIT"
+	PullbackScore      float64             `json:"pullbackScore"`
+	PullbackTFScores   []TimeframeScore    `json:"pullbackTfScores,omitempty"`
+	PullbackFeatures   *MarketFeatures     `json:"pullbackFeatures,omitempty"`
 }
