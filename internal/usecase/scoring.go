@@ -256,11 +256,112 @@ func strconvToFloat(s string) (float64, error) {
 	return strconv.ParseFloat(s, 64)
 }
 
+// CalculateVolatility computes volatility metrics for a coin
+// Returns: atrPercent, bbWidth, volumeRatio, volatilityScore
+func CalculateVolatility(prices, highs, lows, volumes []float64, atr, bbUpper, bbLower []float64) (float64, float64, float64, float64) {
+	if len(prices) < 20 || len(atr) < 14 {
+		return 0, 0, 0, 0
+	}
+
+	lastIdx := len(prices) - 1
+	currentPrice := prices[lastIdx]
+	currentAtr := atr[lastIdx]
+
+	// ATR as percentage of price (higher = more volatile)
+	atrPercent := 0.0
+	if currentPrice > 0 {
+		atrPercent = (currentAtr / currentPrice) * 100
+	}
+
+	// Bollinger Band width percentage
+	bbWidth := 0.0
+	if len(bbUpper) > lastIdx && len(bbLower) > lastIdx && currentPrice > 0 {
+		bbWidth = ((bbUpper[lastIdx] - bbLower[lastIdx]) / currentPrice) * 100
+	}
+
+	// Volume ratio (current vs 20-period average)
+	volumeRatio := 1.0
+	if len(volumes) >= 20 {
+		avgVolume := 0.0
+		for i := lastIdx - 19; i < lastIdx; i++ {
+			avgVolume += volumes[i]
+		}
+		avgVolume /= 20
+		if avgVolume > 0 {
+			volumeRatio = volumes[lastIdx] / avgVolume
+		}
+	}
+
+	// Volatility Score (0-100)
+	// Focus on ATR% and BB width - higher = more volatile
+	volatilityScore := 0.0
+
+	// ATR% scoring (0-40)
+	// Crypto typically: <1% = low, 1-3% = medium, >3% = high volatility
+	if atrPercent >= 4.0 {
+		volatilityScore += 40 // Very high volatility
+	} else if atrPercent >= 3.0 {
+		volatilityScore += 35
+	} else if atrPercent >= 2.0 {
+		volatilityScore += 25
+	} else if atrPercent >= 1.5 {
+		volatilityScore += 15
+	} else if atrPercent >= 1.0 {
+		volatilityScore += 10
+	}
+
+	// BB Width scoring (0-30)
+	// Higher width = more volatile
+	if bbWidth >= 8.0 {
+		volatilityScore += 30
+	} else if bbWidth >= 6.0 {
+		volatilityScore += 25
+	} else if bbWidth >= 4.0 {
+		volatilityScore += 20
+	} else if bbWidth >= 3.0 {
+		volatilityScore += 15
+	} else if bbWidth >= 2.0 {
+		volatilityScore += 10
+	}
+
+	// Volume spike scoring (0-30)
+	// Volume > 1.5x avg = active trading = good for pullback
+	if volumeRatio >= 3.0 {
+		volatilityScore += 30
+	} else if volumeRatio >= 2.0 {
+		volatilityScore += 25
+	} else if volumeRatio >= 1.5 {
+		volatilityScore += 20
+	} else if volumeRatio >= 1.2 {
+		volatilityScore += 10
+	}
+
+	if volatilityScore > 100 {
+		volatilityScore = 100
+	}
+
+	return atrPercent, bbWidth, volumeRatio, volatilityScore
+}
+
 // CalculatePullbackScore computes score for Buy the Dip / Pullback Entry setup
-// Criteria: Uptrend + Pullback to support/EMA + Bounce signal
-func CalculatePullbackScore(prices, ema20, ema50, rsi []float64, features *domain.MarketFeatures) float64 {
+// Criteria: Uptrend + Pullback to support/EMA + Bounce signal + HIGH VOLATILITY
+func CalculatePullbackScore(prices, highs, lows, volumes, ema20, ema50, rsi, atr, bbUpper, bbLower []float64, features *domain.MarketFeatures) (float64, float64, float64, float64, float64) {
 	if len(prices) < 50 || len(ema20) < 50 || len(ema50) < 50 || len(rsi) < 14 {
-		return 0
+		return 0, 0, 0, 0, 0
+	}
+
+	// Calculate volatility first
+	atrPercent, bbWidth, volumeRatio, volatilityScore := CalculateVolatility(prices, highs, lows, volumes, atr, bbUpper, bbLower)
+
+	// VOLATILITY GATE: If volatility too low, reduce attractiveness
+	// We want volatile coins for pullback plays
+	volatilityMultiplier := 1.0
+	if volatilityScore < 30 {
+		volatilityMultiplier = 0.5 // Low volatility = less attractive
+	} else if volatilityScore < 50 {
+		volatilityMultiplier = 0.75
+	} else if volatilityScore >= 70 {
+		volatilityMultiplier = 1.2 // High volatility bonus
 	}
 
 	lastIdx := len(prices) - 1
@@ -271,18 +372,18 @@ func CalculatePullbackScore(prices, ema20, ema50, rsi []float64, features *domai
 
 	score := 0.0
 
-	// === TREND SCORE (0-30) ===
+	// === TREND SCORE (0-25) ===
 	// Check if in uptrend: EMA20 > EMA50, price trending up
 	trendScore := 0.0
 
 	// EMA alignment (uptrend)
 	if currentEma20 > currentEma50 {
-		trendScore += 15 // EMAs aligned bullish
+		trendScore += 12 // EMAs aligned bullish
 	}
 
 	// Price above EMA50 (still in uptrend structure)
 	if currentPrice > currentEma50*0.98 { // Allow slight dip below EMA50
-		trendScore += 10
+		trendScore += 8
 	}
 
 	// Higher highs check (last 20 candles)
@@ -304,8 +405,8 @@ func CalculatePullbackScore(prices, ema20, ema50, rsi []float64, features *domai
 		}
 	}
 
-	if trendScore > 30 {
-		trendScore = 30
+	if trendScore > 25 {
+		trendScore = 25
 	}
 	score += trendScore
 
@@ -317,9 +418,9 @@ func CalculatePullbackScore(prices, ema20, ema50, rsi []float64, features *domai
 	if currentRsi >= 30 && currentRsi <= 40 {
 		pullbackScore += 20 // Ideal oversold bounce zone
 	} else if currentRsi > 40 && currentRsi <= 50 {
-		pullbackScore += 15 // Mild pullback
+		pullbackScore += 12 // Mild pullback
 	} else if currentRsi >= 25 && currentRsi < 30 {
-		pullbackScore += 10 // Very oversold, risky but potential
+		pullbackScore += 8 // Very oversold, risky but potential
 	}
 
 	// Price pulled back to EMA zone (near EMA20 or between EMA20-EMA50)
@@ -330,12 +431,12 @@ func CalculatePullbackScore(prices, ema20, ema50, rsi []float64, features *domai
 		pullbackScore += 5 // Slight dip below EMA20
 	}
 
-	if pullbackScore > 30 {
-		pullbackScore = 30
+	if pullbackScore > 25 {
+		pullbackScore = 25
 	}
 	score += pullbackScore
 
-	// === BOUNCE SIGNAL SCORE (0-25) ===
+	// === BOUNCE SIGNAL SCORE (0-20) ===
 	bounceScore := 0.0
 
 	// RSI bouncing (current RSI higher than recent low)
@@ -347,7 +448,7 @@ func CalculatePullbackScore(prices, ema20, ema50, rsi []float64, features *domai
 			}
 		}
 		if currentRsi > minRsi+3 { // RSI bouncing up
-			bounceScore += 15
+			bounceScore += 12
 		}
 	}
 
@@ -360,12 +461,12 @@ func CalculatePullbackScore(prices, ema20, ema50, rsi []float64, features *domai
 			}
 		}
 		if currentPrice > minPrice*1.005 { // Price bounced at least 0.5%
-			bounceScore += 10
+			bounceScore += 8
 		}
 	}
 
-	if bounceScore > 25 {
-		bounceScore = 25
+	if bounceScore > 20 {
+		bounceScore = 20
 	}
 	score += bounceScore
 
@@ -387,5 +488,24 @@ func CalculatePullbackScore(prices, ema20, ema50, rsi []float64, features *domai
 	}
 	score += riskScore
 
-	return score
+	// === VOLATILITY BONUS (0-15) ===
+	// Add points for high volatility coins
+	volBonus := 0.0
+	if volatilityScore >= 70 {
+		volBonus = 15
+	} else if volatilityScore >= 50 {
+		volBonus = 10
+	} else if volatilityScore >= 35 {
+		volBonus = 5
+	}
+	score += volBonus
+
+	// Apply volatility multiplier to final score
+	score = score * volatilityMultiplier
+
+	if score > 100 {
+		score = 100
+	}
+
+	return score, atrPercent, bbWidth, volumeRatio, volatilityScore
 }

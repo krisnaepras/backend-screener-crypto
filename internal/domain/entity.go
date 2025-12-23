@@ -66,4 +66,9 @@ type CoinData struct {
 	PullbackScore      float64             `json:"pullbackScore"`
 	PullbackTFScores   []TimeframeScore    `json:"pullbackTfScores,omitempty"`
 	PullbackFeatures   *MarketFeatures     `json:"pullbackFeatures,omitempty"`
+	// Volatility metrics for Pullback
+	VolatilityScore    float64             `json:"volatilityScore"`    // 0-100 volatility rating
+	AtrPercent         float64             `json:"atrPercent"`         // ATR as % of price
+	BbWidth            float64             `json:"bbWidth"`            // Bollinger Band width %
+	VolumeRatio        float64             `json:"volumeRatio"`        // Current vol vs avg
 }

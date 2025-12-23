@@ -446,8 +446,17 @@ func (uc *ScreenerUsecase) process() {
 					continue
 				}
 
-				// Calculate pullback score (different criteria)
-				pullbackScore := CalculatePullbackScore(prices, ema20, ema50, rsi, features)
+				// Calculate pullback score with volatility (different criteria)
+				pullbackScore, atrPct, bbW, volR, volScore := CalculatePullbackScore(prices, highs, lows, volumes, ema20, ema50, rsi, atr, bb.Upper, bb.Lower, features)
+				
+				// Store volatility metrics (use first TF as reference)
+				if coin.AtrPercent == 0 {
+					coin.AtrPercent = atrPct
+					coin.BbWidth = bbW
+					coin.VolumeRatio = volR
+					coin.VolatilityScore = volScore
+				}
+				
 				pullbackTFScores = append(pullbackTFScores, domain.TimeframeScore{
 					TF:    tf,
 					Score: pullbackScore,
@@ -498,7 +507,16 @@ func (uc *ScreenerUsecase) process() {
 					continue
 				}
 
-				pullbackScore := CalculatePullbackScore(prices, ema20, ema50, rsi, features)
+				pullbackScore, atrPct, bbW, volR, volScore := CalculatePullbackScore(prices, highs, lows, volumes, ema20, ema50, rsi, atr, bb.Upper, bb.Lower, features)
+				
+				// Update volatility if higher than setup TF
+				if volScore > coin.VolatilityScore {
+					coin.AtrPercent = atrPct
+					coin.BbWidth = bbW
+					coin.VolumeRatio = volR
+					coin.VolatilityScore = volScore
+				}
+				
 				pullbackTFScores = append(pullbackTFScores, domain.TimeframeScore{
 					TF:    tf,
 					Score: pullbackScore,
