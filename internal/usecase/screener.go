@@ -198,7 +198,8 @@ func (uc *ScreenerUsecase) process() {
 				}
 
 				// A TF is "aligned" if it shows overbought signals
-				isAligned := feat.RSI > 65 || feat.OverExtEma > 0.03 || feat.IsAboveUpperBand
+				// Lowered thresholds for less strict but still valid reversal
+				isAligned := feat.RSI > 60 || feat.OverExtEma > 0.02 || feat.IsAboveUpperBand
 				if isAligned {
 					confluenceCount++
 				}
@@ -247,7 +248,7 @@ func (uc *ScreenerUsecase) process() {
 				Symbol:             symbol,
 				Price:              currentPrice,
 				Score:              finalScore,
-				Status:             "AVOID",
+				Status:             "",
 				TriggerTF:          primaryTF,
 				ConfluenceCount:    confluenceCount,
 				TFScores:           tfScores,
@@ -258,17 +259,16 @@ func (uc *ScreenerUsecase) process() {
 			}
 
 			// Determine Status based on 1m + 5m confluence
-			// TRIGGERED: both 1m and 5m aligned (confluence = 2) + decent score
-			// WATCH: only 1 TF aligned OR score decent but not both aligned
-			// AVOID: no alignment, low score
-			if confluenceCount >= 2 && finalScore >= 50 {
-				coin.Status = "TRIGGERED"
-			} else if confluenceCount >= 1 && finalScore >= 40 {
+			// TRIGGER: both 1m and 5m aligned (confluence = 2) - ready for entry!
+			// SETUP: 1 TF aligned with decent score - preparing
+			// WATCH: decent score but weak alignment
+			// (no status = not displayed)
+			if confluenceCount >= 2 && finalScore >= 40 {
+				coin.Status = "TRIGGER"
+			} else if confluenceCount >= 1 && finalScore >= 35 {
+				coin.Status = "SETUP"
+			} else if finalScore >= 30 {
 				coin.Status = "WATCH"
-			} else if finalScore >= 35 {
-				coin.Status = "WATCH"
-			} else {
-				coin.Status = "AVOID"
 			}
 
 			mu.Lock()

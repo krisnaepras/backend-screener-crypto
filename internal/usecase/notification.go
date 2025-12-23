@@ -23,7 +23,7 @@ func (uc *ScreenerUsecase) sendNotificationsForTriggers(coins []domain.CoinData)
 	cooldownDuration := 5 * time.Minute
 
 	for _, coin := range coins {
-		// Notify for TRIGGER (score >= 75) and SETUP (score >= 55)
+		// Notify only for TRIGGER and SETUP (not WATCH)
 		if coin.Status != "TRIGGER" && coin.Status != "SETUP" {
 			continue
 		}
@@ -44,14 +44,14 @@ func (uc *ScreenerUsecase) sendNotificationsForTriggers(coins []domain.CoinData)
 		var title, emoji string
 		if coin.Status == "TRIGGER" {
 			emoji = "🚀"
-			title = fmt.Sprintf("%s %s TRIGGER", emoji, displaySymbol)
+			title = fmt.Sprintf("%s %s TRIGGER - Entry Ready!", emoji, displaySymbol)
 		} else { // SETUP
 			emoji = "⚡"
-			title = fmt.Sprintf("%s %s SETUP", emoji, displaySymbol)
+			title = fmt.Sprintf("%s %s SETUP - Preparing", emoji, displaySymbol)
 		}
 		
-		body := fmt.Sprintf("Score: %.0f | Price: $%.5f | Change: %.2f%%", 
-			coin.Score, coin.Price, coin.PriceChangePercent)
+		body := fmt.Sprintf("Score: %.0f | %dTF | Price: $%.5f | Change: %.2f%%", 
+			coin.Score, coin.ConfluenceCount, coin.Price, coin.PriceChangePercent)
 
 		data := map[string]string{
 			"symbol": coin.Symbol,
