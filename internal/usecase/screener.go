@@ -98,9 +98,9 @@ func (uc *ScreenerUsecase) process() {
 	
 	log.Printf("Found %d active symbols", len(targetSymbols))
 
-	// Core timeframes for multi-TF confluence: 1m, 5m, 15m
-	// All 3 must show overbought signals for SUPER VALID entry
-	coreTimeframes := []string{"1m", "5m", "15m"}
+	// Core timeframes for multi-TF confluence: 1m + 5m only
+	// Focus on short-term reversal signals for quicker entries
+	coreTimeframes := []string{"1m", "5m"}
 
 	for _, sym := range targetSymbols {
 		wg.Add(1)
@@ -224,16 +224,16 @@ func (uc *ScreenerUsecase) process() {
 			// Base score is average of all TFs
 			avgScore := totalScore / float64(len(tfScores))
 
-			// Confluence multiplier: more TFs aligned = higher score
-			// 1 TF aligned: x1.0 (no bonus)
-			// 2 TFs aligned: x1.2 (20% bonus)
-			// 3 TFs aligned: x1.5 (50% bonus - SUPER VALID!)
+			// Confluence multiplier for 1m + 5m:
+			// 2 TFs aligned: x1.3 (TRIGGERED - ready for entry!)
+			// 1 TF aligned: x1.1 (WATCH)
+			// 0 TFs aligned: x1.0 (AVOID)
 			var confluenceMultiplier float64
 			switch confluenceCount {
-			case 3:
-				confluenceMultiplier = 1.5
 			case 2:
-				confluenceMultiplier = 1.2
+				confluenceMultiplier = 1.3
+			case 1:
+				confluenceMultiplier = 1.1
 			default:
 				confluenceMultiplier = 1.0
 			}
@@ -257,16 +257,18 @@ func (uc *ScreenerUsecase) process() {
 				Features:           primaryFeatures,
 			}
 
-			// Determine Status based on confluence + score
-			// TRIGGER: confluence 3 + score >= 60 OR confluence 2 + score >= 75
-			// SETUP: confluence >= 2 + score >= 50 OR any TF score >= 65
-			// WATCH: any score >= 30
-			if (confluenceCount >= 3 && finalScore >= 60) || (confluenceCount >= 2 && finalScore >= 75) {
-				coin.Status = "TRIGGER"
-			} else if (confluenceCount >= 2 && finalScore >= 50) || finalScore >= 65 {
-				coin.Status = "SETUP"
-			} else if finalScore >= 30 {
+			// Determine Status based on 1m + 5m confluence
+			// TRIGGERED: both 1m and 5m aligned (confluence = 2) + decent score
+			// WATCH: only 1 TF aligned OR score decent but not both aligned
+			// AVOID: no alignment, low score
+			if confluenceCount >= 2 && finalScore >= 50 {
+				coin.Status = "TRIGGERED"
+			} else if confluenceCount >= 1 && finalScore >= 40 {
 				coin.Status = "WATCH"
+			} else if finalScore >= 35 {
+				coin.Status = "WATCH"
+			} else {
+				coin.Status = "AVOID"
 			}
 
 			mu.Lock()
