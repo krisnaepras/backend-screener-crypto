@@ -322,7 +322,8 @@ func (uc *ScreenerUsecase) process() {
 				IntradayTFScores:   intradayTFScores,
 			}
 
-			// === INTRADAY STATUS (15m + 1h) ===
+			// === INTRADAY STATUS (15m + 1h) - SHORT ONLY ===
+			// Fokus mencari setup SHORT/SELL berdasarkan kondisi overbought
 			if len(intradayTFScores) >= 2 {
 				var intradayTotalScore float64
 				intradayConfluence := 0
@@ -334,9 +335,14 @@ func (uc *ScreenerUsecase) process() {
 						continue
 					}
 
-					isOverbought := feat.RSI > 60 || feat.OverExtEma > 0.02 || feat.IsAboveUpperBand
+					// SHORT CRITERIA: Overbought conditions for selling
+					// RSI > 65 (overbought), Price extended above EMA, Above upper BB
+					isOverbought := feat.RSI > 65 || feat.OverExtEma > 0.025 || feat.IsAboveUpperBand
 					hasLosingMomentum := feat.IsLosingMomentum || feat.HasRsiDivergence || feat.HasVolumeDivergence
-					if isOverbought || hasLosingMomentum {
+					hasBearishSignal := feat.IsRsiBearishDiv || feat.RejectionWickRatio > 0.5
+					
+					// Count as aligned if showing bearish/overbought signals
+					if isOverbought || hasLosingMomentum || hasBearishSignal {
 						intradayConfluence++
 					}
 
@@ -352,7 +358,7 @@ func (uc *ScreenerUsecase) process() {
 
 				intradayAvgScore := intradayTotalScore / float64(len(intradayTFScores))
 				
-				// Intraday confluence multiplier
+				// Intraday confluence multiplier for SHORT
 				var intradayMultiplier float64
 				switch intradayConfluence {
 				case 2:
@@ -369,13 +375,23 @@ func (uc *ScreenerUsecase) process() {
 				}
 				coin.IntradayFeatures = intradayPrimaryFeatures
 
-				// Intraday Status: HOT (ready), WARM (preparing), COOL (watching)
-				if intradayConfluence >= 2 && coin.IntradayScore >= 45 {
-					coin.IntradayStatus = "HOT"
-				} else if intradayConfluence >= 1 && coin.IntradayScore >= 35 {
-					coin.IntradayStatus = "WARM"
-				} else if coin.IntradayScore >= 30 {
-					coin.IntradayStatus = "COOL"
+				// Intraday Status for SHORT: HOT (ready to short), WARM (preparing), COOL (watching)
+				// Only assign status if there's overbought signal (good for shorting)
+				if intradayPrimaryFeatures != nil {
+					hasShortSignal := intradayPrimaryFeatures.RSI > 60 || 
+						intradayPrimaryFeatures.IsAboveUpperBand || 
+						intradayPrimaryFeatures.IsLosingMomentum ||
+						intradayPrimaryFeatures.HasRsiDivergence
+					
+					if hasShortSignal {
+						if intradayConfluence >= 2 && coin.IntradayScore >= 45 {
+							coin.IntradayStatus = "HOT"
+						} else if intradayConfluence >= 1 && coin.IntradayScore >= 35 {
+							coin.IntradayStatus = "WARM"
+						} else if coin.IntradayScore >= 30 {
+							coin.IntradayStatus = "COOL"
+						}
+					}
 				}
 			}
 
