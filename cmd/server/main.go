@@ -10,9 +10,9 @@ import (
 
 	httphandler "screener-backend/internal/delivery/http"
 	"screener-backend/internal/delivery/websocket"
+	"screener-backend/internal/domain"
 	"screener-backend/internal/infrastructure/db"
 	"screener-backend/internal/infrastructure/fcm"
-	"screener-backend/internal/domain"
 	"screener-backend/internal/repository"
 	"screener-backend/internal/usecase"
 )

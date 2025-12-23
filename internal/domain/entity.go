@@ -23,18 +23,30 @@ type MarketFeatures struct {
 type TimeframeScore struct {
 	TF    string  `json:"tf"`
 	Score float64 `json:"score"`
+	RSI   float64 `json:"rsi"`
+}
+
+// TimeframeFeatures stores features per timeframe for display.
+type TimeframeFeatures struct {
+	TF             string  `json:"tf"`
+	RSI            float64 `json:"rsi"`
+	OverExtEma     float64 `json:"overExtEma"`
+	IsAboveUpperBB bool    `json:"isAboveUpperBB"`
+	IsBreakdown    bool    `json:"isBreakdown"`
 }
 
 // CoinData represents the main data structure for a screened coin.
 type CoinData struct {
-	Symbol             string           `json:"symbol"`
-	Price              float64          `json:"price"`
-	Score              float64          `json:"score"`               // Max score across all TFs
-	Status             string           `json:"status"`              // e.g., "SETUP", "TRIGGER", "AVOID"
-	TriggerTF          string           `json:"triggerTf,omitempty"` // Which TF triggered (e.g. "1m", "15m")
-	TFScores           []TimeframeScore `json:"tfScores,omitempty"`  // Scores per TF
-	PriceChangePercent float64          `json:"priceChangePercent"`
-	FundingRate        float64          `json:"fundingRate"`
-	BasisSpread        float64          `json:"basisSpread"`
-	Features           *MarketFeatures  `json:"features"`
+	Symbol             string              `json:"symbol"`
+	Price              float64             `json:"price"`
+	Score              float64             `json:"score"`                    // Combined confluence score
+	Status             string              `json:"status"`                   // e.g., "SETUP", "TRIGGER", "AVOID"
+	TriggerTF          string              `json:"triggerTf,omitempty"`      // Primary TF that triggered
+	ConfluenceCount    int                 `json:"confluenceCount"`          // How many TFs aligned (1-3)
+	TFScores           []TimeframeScore    `json:"tfScores,omitempty"`       // Scores per TF
+	TFFeatures         []TimeframeFeatures `json:"tfFeatures,omitempty"`     // Features per TF
+	PriceChangePercent float64             `json:"priceChangePercent"`
+	FundingRate        float64             `json:"fundingRate"`
+	BasisSpread        float64             `json:"basisSpread"`
+	Features           *MarketFeatures     `json:"features"` // Primary TF features
 }

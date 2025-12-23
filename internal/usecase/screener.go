@@ -98,8 +98,9 @@ func (uc *ScreenerUsecase) process() {
 	
 	log.Printf("Found %d active symbols", len(targetSymbols))
 
-	// Timeframes to check - from fastest to slowest
-	timeframes := []string{"1m", "5m", "15m", "1h"}
+	// Core timeframes for multi-TF confluence: 1m, 5m, 15m
+	// All 3 must show overbought signals for SUPER VALID entry
+	coreTimeframes := []string{"1m", "5m", "15m"}
 
 	for _, sym := range targetSymbols {
 		wg.Add(1)
@@ -111,14 +112,13 @@ func (uc *ScreenerUsecase) process() {
 			// Funding Rate (same for all TFs)
 			funding, _ := uc.binanceClient.GetFundingRate(symbol)
 
-			var bestScore float64
-			var bestTF string
-			var bestFeatures *domain.MarketFeatures
-			var bestPrice float64
 			var tfScores []domain.TimeframeScore
+			var tfFeatures []domain.TimeframeFeatures
+			var featuresMap = make(map[string]*domain.MarketFeatures)
+			var pricesMap = make(map[string]float64)
 
-			// Check each timeframe
-			for _, tf := range timeframes {
+			// Fetch all core timeframes
+			for _, tf := range coreTimeframes {
 				rawKlines, err := uc.binanceClient.GetKlines(symbol, tf, 100)
 				if err != nil {
 					continue
@@ -162,43 +162,110 @@ func (uc *ScreenerUsecase) process() {
 				}
 
 				scoreResult := CalculateScore(features)
-				tfScores = append(tfScores, domain.TimeframeScore{TF: tf, Score: scoreResult})
+				tfScores = append(tfScores, domain.TimeframeScore{
+					TF:    tf,
+					Score: scoreResult,
+					RSI:   features.RSI,
+				})
+				tfFeatures = append(tfFeatures, domain.TimeframeFeatures{
+					TF:             tf,
+					RSI:            features.RSI,
+					OverExtEma:     features.OverExtEma,
+					IsAboveUpperBB: features.IsAboveUpperBand,
+					IsBreakdown:    features.IsBreakdown,
+				})
+				featuresMap[tf] = features
+				pricesMap[tf] = prices[len(prices)-1]
+			}
 
-				// Track the best (highest) score across TFs
-				if scoreResult > bestScore {
-					bestScore = scoreResult
-					bestTF = tf
-					bestFeatures = features
-					bestPrice = prices[len(prices)-1]
+			// Need at least 2 TFs to evaluate
+			if len(tfScores) < 2 {
+				return
+			}
+
+			// === MULTI-TF CONFLUENCE SCORING ===
+			// Count how many TFs are showing overbought signals
+			confluenceCount := 0
+			var totalScore float64
+			var primaryTF string
+			var primaryFeatures *domain.MarketFeatures
+			var currentPrice float64
+
+			for _, tf := range coreTimeframes {
+				feat, ok := featuresMap[tf]
+				if !ok {
+					continue
+				}
+
+				// A TF is "aligned" if it shows overbought signals
+				isAligned := feat.RSI > 65 || feat.OverExtEma > 0.03 || feat.IsAboveUpperBand
+				if isAligned {
+					confluenceCount++
+				}
+
+				// Find highest scoring TF as primary
+				for _, ts := range tfScores {
+					if ts.TF == tf {
+						totalScore += ts.Score
+						if primaryFeatures == nil || ts.Score > CalculateScore(primaryFeatures) {
+							primaryTF = tf
+							primaryFeatures = feat
+							currentPrice = pricesMap[tf]
+						}
+					}
 				}
 			}
 
-			if bestFeatures == nil {
+			if primaryFeatures == nil {
 				return
+			}
+
+			// === CONFLUENCE BONUS ===
+			// Base score is average of all TFs
+			avgScore := totalScore / float64(len(tfScores))
+
+			// Confluence multiplier: more TFs aligned = higher score
+			// 1 TF aligned: x1.0 (no bonus)
+			// 2 TFs aligned: x1.2 (20% bonus)
+			// 3 TFs aligned: x1.5 (50% bonus - SUPER VALID!)
+			var confluenceMultiplier float64
+			switch confluenceCount {
+			case 3:
+				confluenceMultiplier = 1.5
+			case 2:
+				confluenceMultiplier = 1.2
+			default:
+				confluenceMultiplier = 1.0
+			}
+
+			finalScore := avgScore * confluenceMultiplier
+			if finalScore > 100 {
+				finalScore = 100
 			}
 
 			coin := domain.CoinData{
 				Symbol:             symbol,
-				Price:              bestPrice,
-				Score:              bestScore,
+				Price:              currentPrice,
+				Score:              finalScore,
 				Status:             "AVOID",
-				TriggerTF:          bestTF,
+				TriggerTF:          primaryTF,
+				ConfluenceCount:    confluenceCount,
 				TFScores:           tfScores,
-				PriceChangePercent: bestFeatures.PctChange24h,
+				TFFeatures:         tfFeatures,
+				PriceChangePercent: primaryFeatures.PctChange24h,
 				FundingRate:        funding,
-				Features:           bestFeatures,
+				Features:           primaryFeatures,
 			}
 
-			// Determine Status based on Score (4 levels)
-			// TRIGGER: 70+ (lowered from 75 for earlier detection)
-			// SETUP: 50+ (lowered from 55)
-			// WATCH: 25+
-			// AVOID: <25
-			if bestScore >= 70 {
+			// Determine Status based on confluence + score
+			// TRIGGER: confluence 3 + score >= 60 OR confluence 2 + score >= 75
+			// SETUP: confluence >= 2 + score >= 50 OR any TF score >= 65
+			// WATCH: any score >= 30
+			if (confluenceCount >= 3 && finalScore >= 60) || (confluenceCount >= 2 && finalScore >= 75) {
 				coin.Status = "TRIGGER"
-			} else if bestScore >= 50 {
+			} else if (confluenceCount >= 2 && finalScore >= 50) || finalScore >= 65 {
 				coin.Status = "SETUP"
-			} else if bestScore >= 25 {
+			} else if finalScore >= 30 {
 				coin.Status = "WATCH"
 			}
 
