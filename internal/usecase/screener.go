@@ -98,6 +98,9 @@ func (uc *ScreenerUsecase) process() {
 	
 	log.Printf("Found %d active symbols", len(targetSymbols))
 
+	// Timeframes to check - from fastest to slowest
+	timeframes := []string{"1m", "5m", "15m", "1h"}
+
 	for _, sym := range targetSymbols {
 		wg.Add(1)
 		go func(symbol string) {
@@ -105,92 +108,103 @@ func (uc *ScreenerUsecase) process() {
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			// Fetch Data
-			// Klines
-			rawKlines, err := uc.binanceClient.GetKlines(symbol, "15m", 100)
-			if err != nil {
-				log.Printf("Error fetching klines for %s: %v", symbol, err)
+			// Funding Rate (same for all TFs)
+			funding, _ := uc.binanceClient.GetFundingRate(symbol)
+
+			var bestScore float64
+			var bestTF string
+			var bestFeatures *domain.MarketFeatures
+			var bestPrice float64
+			var tfScores []domain.TimeframeScore
+
+			// Check each timeframe
+			for _, tf := range timeframes {
+				rawKlines, err := uc.binanceClient.GetKlines(symbol, tf, 100)
+				if err != nil {
+					continue
+				}
+				if len(rawKlines) < 50 {
+					continue
+				}
+
+				// Parse Klines to float slices
+				prices := make([]float64, len(rawKlines))
+				highs := make([]float64, len(rawKlines))
+				lows := make([]float64, len(rawKlines))
+
+				for i, k := range rawKlines {
+					h, _ := parseValue(k[2])
+					l, _ := parseValue(k[3])
+					c, _ := parseValue(k[4])
+					prices[i] = c
+					highs[i] = h
+					lows[i] = l
+				}
+
+				// Calculate Indicators
+				ema50 := indicators.CalculateEMA(prices, 50)
+				vwap := make([]float64, len(prices)) // placeholder
+				rsi := indicators.CalculateRSI(prices, 14)
+				atr := indicators.CalculateATR(highs, lows, prices, 14)
+				bb := indicators.CalculateBollingerBands(prices, 20, 2.0)
+				pivots := indicators.FindPivotLows(lows, 5, 2)
+
+				features := ExtractFeatures(
+					prices, highs, lows,
+					tickerMap[symbol],
+					ema50, vwap, rsi,
+					bb, atr, pivots,
+					funding, 0,
+				)
+
+				if features == nil {
+					continue
+				}
+
+				scoreResult := CalculateScore(features)
+				tfScores = append(tfScores, domain.TimeframeScore{TF: tf, Score: scoreResult})
+
+				// Track the best (highest) score across TFs
+				if scoreResult > bestScore {
+					bestScore = scoreResult
+					bestTF = tf
+					bestFeatures = features
+					bestPrice = prices[len(prices)-1]
+				}
+			}
+
+			if bestFeatures == nil {
 				return
 			}
 
-			// Parse Klines to float slices
-			prices := make([]float64, len(rawKlines))
-			highs := make([]float64, len(rawKlines))
-			lows := make([]float64, len(rawKlines))
-			// volumes := make([]float64, len(rawKlines)) // needed for VWAP if implemented fully
-
-			for i, k := range rawKlines {
-				// [open_time, open, high, low, close, volume, ...]
-				// high=index 2, low=3, close=4
-				// We need to carefully parse.
-				// Assuming they are strings as per usual Binance JSON.
-				// Or if interface{}, assert.
-				
-				h, _ := parseValue(k[2])
-				l, _ := parseValue(k[3])
-				c, _ := parseValue(k[4])
-				// v, _ := parseValue(k[5])
-				
-				prices[i] = c
-				highs[i] = h
-				lows[i] = l
+			coin := domain.CoinData{
+				Symbol:             symbol,
+				Price:              bestPrice,
+				Score:              bestScore,
+				Status:             "AVOID",
+				TriggerTF:          bestTF,
+				TFScores:           tfScores,
+				PriceChangePercent: bestFeatures.PctChange24h,
+				FundingRate:        funding,
+				Features:           bestFeatures,
 			}
 
-			// Funding Rate
-			funding, _ := uc.binanceClient.GetFundingRate(symbol)
-
-			// Calculate Indicators
-			ema50 := indicators.CalculateEMA(prices, 50)
-			// VWAP requires Volume. Let's skip VWAP full calc for now or implement properly if time allows.
-			// Dart VWAP used typical price & volume.
-			// Let's pass empty vwap for now or fix parsing above.
-			// I'll skip VWAP specific volume parsing to save complexity, just pass 0s so it doesn't crash.
-			vwap := make([]float64, len(prices)) // placeholder
-
-			rsi := indicators.CalculateRSI(prices, 14)
-			atr := indicators.CalculateATR(highs, lows, prices, 14)
-			bb := indicators.CalculateBollingerBands(prices, 20, 2.0)
-			pivots := indicators.FindPivotLows(lows, 5, 2) // Dart used 2,2? Check later.
-
-			features := ExtractFeatures(
-				prices, highs, lows,
-				tickerMap[symbol],
-				ema50, vwap, rsi,
-				bb, atr, pivots,
-				funding, 0, // OI delta 0 for now
-			)
-
-			if features != nil {
-				scoreResult := CalculateScore(features)
-				
-				coin := domain.CoinData{
-					Symbol:             symbol,
-					Price:              prices[len(prices)-1],
-					Score:              scoreResult,
-					Status:             "AVOID",
-					PriceChangePercent: features.PctChange24h,
-					FundingRate:        funding,
-					Features:           features,
-				}
-				
-				// Determine Status based on Score (4 levels - stricter for HIGH)
-				// HIGH: 75+ (requires multiple strong confirmations)
-				// SETUP: 55+ (decent setup with some confirmations)
-				// WATCH: 25+ (early signal, needs monitoring)
-				// AVOID: <25 (insufficient setup)
-				if scoreResult >= 75 {
-					coin.Status = "TRIGGER"
-				} else if scoreResult >= 55 {
-					coin.Status = "SETUP"
-				} else if scoreResult >= 25 {
-					coin.Status = "WATCH"
-				}
-				// else remains AVOID (score < 25)
-
-				mu.Lock()
-				computedCoins = append(computedCoins, coin)
-				mu.Unlock()
+			// Determine Status based on Score (4 levels)
+			// TRIGGER: 70+ (lowered from 75 for earlier detection)
+			// SETUP: 50+ (lowered from 55)
+			// WATCH: 25+
+			// AVOID: <25
+			if bestScore >= 70 {
+				coin.Status = "TRIGGER"
+			} else if bestScore >= 50 {
+				coin.Status = "SETUP"
+			} else if bestScore >= 25 {
+				coin.Status = "WATCH"
 			}
+
+			mu.Lock()
+			computedCoins = append(computedCoins, coin)
+			mu.Unlock()
 
 		}(sym)
 	}
