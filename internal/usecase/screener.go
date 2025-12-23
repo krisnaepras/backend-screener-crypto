@@ -328,73 +328,148 @@ func (uc *ScreenerUsecase) process() {
 			}
 
 			// === INTRADAY STATUS (15m + 1h) - SHORT ONLY ===
-			// Fokus mencari setup SHORT/SELL berdasarkan kondisi overbought
+			// Fokus mencari setup SHORT/SELL berdasarkan exhaustion signals
+			// Score 0-100: <50 = strong buy (jangan short), 50-70 = waspada, >70 = ready to short
 			if len(intradayTFScores) >= 2 {
-				var intradayTotalScore float64
-				intradayConfluence := 0
 				var intradayPrimaryFeatures *domain.MarketFeatures
+				var primary15mFeatures *domain.MarketFeatures
+				var primary1hFeatures *domain.MarketFeatures
 
-				for _, tf := range intradayTimeframes {
-					feat, ok := intradayFeaturesMap[tf]
-					if !ok {
-						continue
-					}
+				// Get features for both timeframes
+				feat15m, ok15m := intradayFeaturesMap["15m"]
+				feat1h, ok1h := intradayFeaturesMap["1h"]
 
-					// SHORT CRITERIA: Overbought conditions for selling
-					// RSI > 65 (overbought), Price extended above EMA, Above upper BB
-					isOverbought := feat.RSI > 65 || feat.OverExtEma > 0.025 || feat.IsAboveUpperBand
-					hasLosingMomentum := feat.IsLosingMomentum || feat.HasRsiDivergence || feat.HasVolumeDivergence
-					hasBearishSignal := feat.IsRsiBearishDiv || feat.RejectionWickRatio > 0.5
-					
-					// Count as aligned if showing bearish/overbought signals
-					if isOverbought || hasLosingMomentum || hasBearishSignal {
-						intradayConfluence++
-					}
-
-					for _, ts := range intradayTFScores {
-						if ts.TF == tf {
-							intradayTotalScore += ts.Score
-							if intradayPrimaryFeatures == nil || ts.Score > CalculateScore(intradayPrimaryFeatures) {
-								intradayPrimaryFeatures = feat
-							}
-						}
-					}
+				if ok15m {
+					primary15mFeatures = feat15m
+				}
+				if ok1h {
+					primary1hFeatures = feat1h
 				}
 
-				intradayAvgScore := intradayTotalScore / float64(len(intradayTFScores))
-				
-				// Intraday confluence multiplier for SHORT
-				var intradayMultiplier float64
-				switch intradayConfluence {
-				case 2:
-					intradayMultiplier = 1.3
-				case 1:
-					intradayMultiplier = 1.15
-				default:
-					intradayMultiplier = 1.0
+				// Use 15m as primary (faster reaction)
+				if primary15mFeatures != nil {
+					intradayPrimaryFeatures = primary15mFeatures
+				} else if primary1hFeatures != nil {
+					intradayPrimaryFeatures = primary1hFeatures
 				}
 
-				coin.IntradayScore = intradayAvgScore * intradayMultiplier
-				if coin.IntradayScore > 100 {
-					coin.IntradayScore = 100
-				}
-				coin.IntradayFeatures = intradayPrimaryFeatures
-
-				// Intraday Status for SHORT: HOT (ready to short), WARM (preparing), COOL (watching)
-				// Only assign status if there's overbought signal (good for shorting)
 				if intradayPrimaryFeatures != nil {
-					hasShortSignal := intradayPrimaryFeatures.RSI > 60 || 
-						intradayPrimaryFeatures.IsAboveUpperBand || 
-						intradayPrimaryFeatures.IsLosingMomentum ||
-						intradayPrimaryFeatures.HasRsiDivergence
+					// Get klines for detailed analysis
+					rawKlines15m, err15m := uc.binanceClient.GetKlines(symbol, "15m", 100)
 					
-					if hasShortSignal {
-						if intradayConfluence >= 2 && coin.IntradayScore >= 45 {
-							coin.IntradayStatus = "HOT"
-						} else if intradayConfluence >= 1 && coin.IntradayScore >= 35 {
-							coin.IntradayStatus = "WARM"
-						} else if coin.IntradayScore >= 30 {
-							coin.IntradayStatus = "COOL"
+					if err15m == nil && len(rawKlines15m) >= 30 {
+						// Parse klines
+						prices := make([]float64, len(rawKlines15m))
+						highs := make([]float64, len(rawKlines15m))
+						lows := make([]float64, len(rawKlines15m))
+						volumes := make([]float64, len(rawKlines15m))
+
+						for i, k := range rawKlines15m {
+							h, _ := parseValue(k[2])
+							l, _ := parseValue(k[3])
+							c, _ := parseValue(k[4])
+							v, _ := parseValue(k[5])
+							prices[i] = c
+							highs[i] = h
+							lows[i] = l
+							volumes[i] = v
+						}
+
+						// Calculate EMAs and RSI for short readiness
+						ema20 := indicators.CalculateEMA(prices, 20)
+						ema50 := indicators.CalculateEMA(prices, 50)
+						rsi := indicators.CalculateRSI(prices, 14)
+
+						// Calculate SHORT READINESS SCORE (0-100)
+						shortReadinessScore := CalculateShortReadinessScore(
+							prices, highs, lows, volumes,
+							ema20, ema50, rsi,
+							intradayPrimaryFeatures,
+							tickerMap[symbol],
+						)
+
+						coin.IntradayScore = shortReadinessScore
+
+						// Determine status based on score and conditions
+						// <50 = STRONG_BUY (jangan short!)
+						// 50-70 = WATCH (waspada, cari trigger)
+						// >70 + BOS = READY (candidate short dengan trigger)
+						// >70 + BOS + volume spike = HOT (execute short!)
+
+						if shortReadinessScore < 50 {
+							// Strong buy territory - DON'T SHORT
+							// Check if truly strong or just no exhaustion yet
+							hasStrongBuySignal := false
+							
+							// Struktur masih sehat: higher highs, EMA alignment
+							if len(prices) >= 20 && len(ema20) >= 20 && len(ema50) >= 20 {
+								lastIdx := len(prices) - 1
+								// Check higher high pattern
+								recentHigh := highs[lastIdx]
+								prevHigh := highs[lastIdx-10]
+								if recentHigh > prevHigh && prices[lastIdx] > ema20[lastIdx] && ema20[lastIdx] > ema50[lastIdx] {
+									hasStrongBuySignal = true
+								}
+							}
+
+							if hasStrongBuySignal {
+								coin.IntradayStatus = "STRONG_BUY" // Roket masih punya bahan bakar
+							} else {
+								coin.IntradayStatus = "" // Neutral, belum ada sinyal
+							}
+
+						} else if shortReadinessScore >= 70 {
+							// Exhaustion zone - look for trigger
+							
+							// Check for BOS (Break of Structure)
+							hasBOS := false
+							if len(prices) >= 20 && len(lows) >= 20 {
+								lastIdx := len(prices) - 1
+								currentPrice := prices[lastIdx]
+								
+								// Find recent swing low (last 10-15 candles)
+								recentLow := lows[lastIdx-1]
+								for i := lastIdx - 15; i < lastIdx; i++ {
+									if i >= 0 && lows[i] < recentLow {
+										recentLow = lows[i]
+									}
+								}
+								
+								// BOS if price broke below recent higher low
+								if currentPrice < recentLow {
+									hasBOS = true
+								}
+							}
+
+							// Check for volume spike (climax)
+							hasVolumeSpike := false
+							if len(volumes) >= 21 {
+								lastIdx := len(volumes) - 1
+								currentVolume := volumes[lastIdx]
+								
+								sumVol := 0.0
+								for i := lastIdx - 20; i < lastIdx; i++ {
+									sumVol += volumes[i]
+								}
+								avgVol := sumVol / 20.0
+								
+								if currentVolume / avgVol > 2.0 {
+									hasVolumeSpike = true
+								}
+							}
+
+							// Assign status
+							if hasBOS && hasVolumeSpike {
+								coin.IntradayStatus = "HOT" // Execute short now!
+							} else if hasBOS {
+								coin.IntradayStatus = "READY" // BOS confirmed, watch for entry
+							} else {
+								coin.IntradayStatus = "WATCH" // Exhausted but no trigger yet
+							}
+
+						} else {
+							// 50-70 range: Waspada zone
+							coin.IntradayStatus = "WATCH" // Monitor closely
 						}
 					}
 				}

@@ -609,3 +609,219 @@ func CalculateBreakoutScore(prices []float64, extremes []float64, volumes []floa
 
 	return score
 }
+
+// CalculateShortReadinessScore computes 0-100 score for SHORT readiness on top gainers
+// Based on exhaustion signals: overextension, volume climax, wick rejection, OI crowding, structure break
+// Higher score = more ready for short reversal
+func CalculateShortReadinessScore(
+	prices, highs, lows, volumes []float64,
+	ema20, ema50, rsi []float64,
+	features *domain.MarketFeatures,
+	ticker binance.Ticker24h,
+) float64 {
+	if features == nil || len(prices) < 30 {
+		return 0
+	}
+
+	lastIdx := len(prices) - 1
+	currentPrice := prices[lastIdx]
+	currentHigh := highs[lastIdx]
+	currentLow := lows[lastIdx]
+	currentVolume := volumes[lastIdx]
+	currentRSI := features.RSI
+
+	score := 0.0
+
+	// === 1. OVEREXTENSION SCORE (0-20) ===
+	// Parabolic + too far from EMA/VWAP = exhaustion
+	overextScore := 0.0
+
+	// Distance from EMA50 (z-score approach)
+	if len(ema50) > lastIdx && ema50[lastIdx] > 0 {
+		distFromEma := (currentPrice - ema50[lastIdx]) / ema50[lastIdx]
+		if distFromEma > 0.15 { // >15% above EMA50
+			overextScore += 10
+		} else if distFromEma > 0.10 {
+			overextScore += 7
+		} else if distFromEma > 0.05 {
+			overextScore += 4
+		}
+	}
+
+	// 24h pump % (parabolic move)
+	pctChange, _ := strconvToFloat(ticker.PriceChangePercent)
+	if pctChange > 50 {
+		overextScore += 10 // Extreme pump
+	} else if pctChange > 30 {
+		overextScore += 7
+	} else if pctChange > 20 {
+		overextScore += 4
+	}
+
+	if overextScore > 20 {
+		overextScore = 20
+	}
+	score += overextScore
+
+	// === 2. VOLUME CLIMAX SCORE (0-20) ===
+	// Volume spike that fails to follow through = distribution
+	volumeScore := 0.0
+
+	// Calculate average volume (last 20 candles excluding current)
+	if len(volumes) >= 21 {
+		sumVol := 0.0
+		for i := lastIdx - 20; i < lastIdx; i++ {
+			sumVol += volumes[i]
+		}
+		avgVol := sumVol / 20.0
+
+		// Volume spike detection
+		volRatio := currentVolume / avgVol
+		if volRatio > 3.0 {
+			volumeScore += 12 // Massive volume spike
+		} else if volRatio > 2.0 {
+			volumeScore += 8
+		} else if volRatio > 1.5 {
+			volumeScore += 4
+		}
+
+		// Check follow-through failure: volume spike but price didn't break previous high convincingly
+		if lastIdx >= 1 && volRatio > 1.5 {
+			prevHigh := highs[lastIdx-1]
+			// Price made new high but couldn't hold it (weak close relative to high)
+			closeToHighRatio := (currentHigh - currentPrice) / (currentHigh - currentLow + 0.0001)
+			if currentPrice > prevHigh && closeToHighRatio > 0.5 {
+				volumeScore += 8 // Failed follow-through after volume spike
+			}
+		}
+	}
+
+	if volumeScore > 20 {
+		volumeScore = 20
+	}
+	score += volumeScore
+
+	// === 3. WICK REJECTION SCORE (0-20) ===
+	// Long upper wick at high = rejection = exhaustion
+	wickScore := 0.0
+
+	candleRange := currentHigh - currentLow
+	if candleRange > 0 {
+		upperWick := currentHigh - currentPrice
+		wickRatio := upperWick / candleRange
+
+		if wickRatio > 0.6 {
+			wickScore += 15 // Very strong rejection
+		} else if wickRatio > 0.5 {
+			wickScore += 12
+		} else if wickRatio > 0.4 {
+			wickScore += 8
+		} else if wickRatio > 0.3 {
+			wickScore += 4
+		}
+
+		// Additional: if it's a "shooting star" pattern (small body, long upper wick)
+		bodySize := abs(currentPrice - prices[max(0, lastIdx-1)])
+		if wickRatio > 0.5 && bodySize/candleRange < 0.3 {
+			wickScore += 5 // Shooting star bonus
+		}
+	}
+
+	if wickScore > 20 {
+		wickScore = 20
+	}
+	score += wickScore
+
+	// === 4. DERIVATIF CROWDING SCORE (0-20) ===
+	// High funding + OI increase = crowded long positions = rawan flush
+	crowdScore := 0.0
+
+	// Funding rate (relative approach - looking for extreme values)
+	// Normal funding: 0.0001-0.0003, High: >0.0005, Extreme: >0.001
+	if features.FundingRate > 0.0015 {
+		crowdScore += 12 // Extremely high funding
+	} else if features.FundingRate > 0.001 {
+		crowdScore += 10
+	} else if features.FundingRate > 0.0007 {
+		crowdScore += 7
+	} else if features.FundingRate > 0.0005 {
+		crowdScore += 4
+	}
+
+	// OI delta (rapid increase = position building)
+	if features.OpenInterestDelta > 15 {
+		crowdScore += 8 // Rapid OI increase
+	} else if features.OpenInterestDelta > 10 {
+		crowdScore += 5
+	} else if features.OpenInterestDelta > 5 {
+		crowdScore += 2
+	}
+
+	if crowdScore > 20 {
+		crowdScore = 20
+	}
+	score += crowdScore
+
+	// === 5. STRUCTURE BREAK SCORE (0-20) ===
+	// BOS (break of structure) = trigger ready
+	structureScore := 0.0
+
+	// RSI divergence (price higher high, RSI lower high)
+	if features.HasRsiDivergence {
+		structureScore += 8 // Divergence warning
+	}
+
+	// Volume divergence
+	if features.HasVolumeDivergence {
+		structureScore += 4
+	}
+
+	// Check for BOS: if price broke below recent higher low
+	// Simple check: compare current low with lows from last 10-20 candles
+	if lastIdx >= 20 {
+		// Find recent swing low
+		recentLow := lows[lastIdx-1]
+		for i := lastIdx - 10; i < lastIdx; i++ {
+			if lows[i] < recentLow {
+				recentLow = lows[i]
+			}
+		}
+
+		// BOS if current price closed below recent swing low
+		if currentPrice < recentLow {
+			structureScore += 8 // BOS confirmed
+		}
+	}
+
+	// RSI overbought (not a trigger, but adds to readiness)
+	if currentRSI > 75 {
+		structureScore += 0 // Already counted in momentum, don't double count
+	}
+
+	if structureScore > 20 {
+		structureScore = 20
+	}
+	score += structureScore
+
+	// Final sanity checks
+	if score > 100 {
+		score = 100
+	}
+
+	return score
+}
+
+// Helper functions
+func abs(x float64) float64 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
