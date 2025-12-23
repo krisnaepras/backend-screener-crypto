@@ -610,6 +610,243 @@ func CalculateBreakoutScore(prices []float64, extremes []float64, volumes []floa
 	return score
 }
 
+// CalculateFollowTrendScore computes 0-100 score for Follow Trend strategy
+// Detects strong trending coins suitable for trend-following entries
+// Works for both LONG (uptrend) and SHORT (downtrend) directions
+func CalculateFollowTrendScore(
+	prices []float64,
+	volumes []float64,
+	ema20 []float64,
+	ema50 []float64,
+	rsi []float64,
+	features *domain.MarketFeatures,
+) float64 {
+	if len(prices) < 50 || len(ema20) < 50 || len(ema50) < 50 || len(rsi) < 50 {
+		return 0
+	}
+
+	lastIdx := len(prices) - 1
+	currentPrice := prices[lastIdx]
+	currentRSI := rsi[lastIdx]
+	ema20Val := ema20[lastIdx]
+	ema50Val := ema50[lastIdx]
+
+	score := 0.0
+
+	// === 1. EMA ALIGNMENT SCORE (0-30) ===
+	// Check if EMAs are properly aligned for trend
+	emaScore := 0.0
+
+	// Calculate EMA separation (stronger trend = bigger separation)
+	if ema50Val > 0 {
+		emaSeparation := ((ema20Val - ema50Val) / ema50Val) * 100 // as percentage
+
+		// LONG trend alignment: EMA20 > EMA50, price > EMA20
+		if currentPrice > ema20Val && ema20Val > ema50Val {
+			if emaSeparation > 3.0 {
+				emaScore += 30 // Very strong uptrend
+			} else if emaSeparation > 2.0 {
+				emaScore += 25 // Strong uptrend
+			} else if emaSeparation > 1.0 {
+				emaScore += 20 // Good uptrend
+			} else if emaSeparation > 0.3 {
+				emaScore += 15 // Moderate uptrend
+			} else {
+				emaScore += 10 // Weak uptrend
+			}
+		}
+
+		// SHORT trend alignment: EMA20 < EMA50, price < EMA20
+		if currentPrice < ema20Val && ema20Val < ema50Val {
+			emaSeparationAbs := -emaSeparation // Make it positive for downtrend
+
+			if emaSeparationAbs > 3.0 {
+				emaScore += 30 // Very strong downtrend
+			} else if emaSeparationAbs > 2.0 {
+				emaScore += 25 // Strong downtrend
+			} else if emaSeparationAbs > 1.0 {
+				emaScore += 20 // Good downtrend
+			} else if emaSeparationAbs > 0.3 {
+				emaScore += 15 // Moderate downtrend
+			} else {
+				emaScore += 10 // Weak downtrend
+			}
+		}
+	}
+
+	if emaScore > 30 {
+		emaScore = 30
+	}
+	score += emaScore
+
+	// === 2. MOMENTUM SCORE (0-25) ===
+	// RSI and price momentum confirm trend strength
+	momentumScore := 0.0
+
+	// For LONG trends: RSI should be > 50 but not overbought
+	if currentPrice > ema20Val && ema20Val > ema50Val {
+		if currentRSI > 60 && currentRSI < 75 {
+			momentumScore += 25 // Strong bullish momentum
+		} else if currentRSI > 55 && currentRSI < 70 {
+			momentumScore += 20 // Good momentum
+		} else if currentRSI > 50 && currentRSI < 65 {
+			momentumScore += 15 // Moderate momentum
+		} else if currentRSI > 45 && currentRSI < 60 {
+			momentumScore += 10 // Building momentum
+		}
+
+		// Price change momentum
+		if features.PctChange24h > 3 {
+			momentumScore += 5 // Strong upward move
+		} else if features.PctChange24h > 1 {
+			momentumScore += 3 // Positive move
+		}
+	}
+
+	// For SHORT trends: RSI should be < 50 but not oversold
+	if currentPrice < ema20Val && ema20Val < ema50Val {
+		if currentRSI < 40 && currentRSI > 25 {
+			momentumScore += 25 // Strong bearish momentum
+		} else if currentRSI < 45 && currentRSI > 30 {
+			momentumScore += 20 // Good bearish momentum
+		} else if currentRSI < 50 && currentRSI > 35 {
+			momentumScore += 15 // Moderate bearish momentum
+		} else if currentRSI < 55 && currentRSI > 40 {
+			momentumScore += 10 // Building bearish momentum
+		}
+
+		// Price change momentum (negative for downtrend)
+		if features.PctChange24h < -3 {
+			momentumScore += 5 // Strong downward move
+		} else if features.PctChange24h < -1 {
+			momentumScore += 3 // Negative move
+		}
+	}
+
+	if momentumScore > 25 {
+		momentumScore = 25
+	}
+	score += momentumScore
+
+	// === 3. VOLUME CONFIRMATION (0-20) ===
+	// Sustained volume supports trend continuation
+	volumeScore := 0.0
+
+	// Check if volume is above average (trend should have volume)
+	avgVolume := 0.0
+	volCount := 0
+	for i := lastIdx - 20; i < lastIdx; i++ {
+		if i >= 0 {
+			avgVolume += volumes[i]
+			volCount++
+		}
+	}
+	if volCount > 0 {
+		avgVolume /= float64(volCount)
+	}
+
+	currentVolume := volumes[lastIdx]
+	if avgVolume > 0 {
+		volumeRatio := currentVolume / avgVolume
+
+		if volumeRatio > 1.5 {
+			volumeScore += 20 // High volume
+		} else if volumeRatio > 1.2 {
+			volumeScore += 15 // Good volume
+		} else if volumeRatio > 1.0 {
+			volumeScore += 10 // Above average
+		} else if volumeRatio > 0.8 {
+			volumeScore += 5 // Decent
+		}
+	}
+
+	// Volume trend (increasing volume = healthier trend)
+	if !features.HasVolumeDivergence {
+		volumeScore += 5 // No volume divergence
+	}
+
+	if volumeScore > 20 {
+		volumeScore = 20
+	}
+	score += volumeScore
+
+	// === 4. TREND CONSISTENCY (0-15) ===
+	// Check recent price action for consistent trend
+	consistencyScore := 0.0
+
+	// Count higher highs (LONG) or lower lows (SHORT) in last 10 candles
+	higherHighs := 0
+	lowerLows := 0
+
+	for i := lastIdx - 9; i <= lastIdx; i++ {
+		if i > 0 && i < len(prices) {
+			if prices[i] > prices[i-1] {
+				higherHighs++
+			}
+			if prices[i] < prices[i-1] {
+				lowerLows++
+			}
+		}
+	}
+
+	// For LONG trends
+	if currentPrice > ema20Val && ema20Val > ema50Val {
+		if higherHighs >= 7 {
+			consistencyScore += 15 // Very consistent uptrend
+		} else if higherHighs >= 6 {
+			consistencyScore += 12 // Strong uptrend
+		} else if higherHighs >= 5 {
+			consistencyScore += 8 // Good uptrend
+		} else if higherHighs >= 4 {
+			consistencyScore += 4 // Moderate uptrend
+		}
+	}
+
+	// For SHORT trends
+	if currentPrice < ema20Val && ema20Val < ema50Val {
+		if lowerLows >= 7 {
+			consistencyScore += 15 // Very consistent downtrend
+		} else if lowerLows >= 6 {
+			consistencyScore += 12 // Strong downtrend
+		} else if lowerLows >= 5 {
+			consistencyScore += 8 // Good downtrend
+		} else if lowerLows >= 4 {
+			consistencyScore += 4 // Moderate downtrend
+		}
+	}
+
+	if consistencyScore > 15 {
+		consistencyScore = 15
+	}
+	score += consistencyScore
+
+	// === 5. TREND HEALTH (0-10) ===
+	// Check for signs of trend weakness
+	healthScore := 10.0 // Start with full health, deduct for issues
+
+	// Deduct for momentum loss
+	if features.IsLosingMomentum {
+		healthScore -= 5
+	}
+
+	// Deduct for volume divergence
+	if features.HasVolumeDivergence {
+		healthScore -= 3
+	}
+
+	// Deduct for overextension (trend might reverse)
+	if features.IsAboveUpperBand {
+		healthScore -= 2
+	}
+
+	if healthScore < 0 {
+		healthScore = 0
+	}
+	score += healthScore
+
+	return score
+}
+
 // CalculateShortReadinessScore computes 0-100 score for SHORT readiness on top gainers
 // Based on exhaustion signals: overextension, volume climax, wick rejection, OI crowding, structure break
 // Higher score = more ready for short reversal

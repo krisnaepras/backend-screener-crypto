@@ -848,6 +848,155 @@ func (uc *ScreenerUsecase) process() {
 				}
 			}
 
+			// === FOLLOW TREND ANALYSIS (15m + 1h) ===
+			// Detect strong trending coins (both LONG and SHORT)
+			// LONG: EMA alignment (20>50), strong momentum, sustained volume
+			// SHORT: EMA alignment (20<50), strong bearish momentum, sustained volume
+			var followTrendTFScores []domain.TimeframeScore
+			var followTrendFeaturesMap = make(map[string]*domain.MarketFeatures)
+			
+			trendTimeframes := []string{"15m", "1h"}
+			
+			for _, tf := range trendTimeframes {
+				rawKlines, err := uc.binanceClient.GetKlines(symbol, tf, 100)
+				if err != nil || len(rawKlines) < 50 {
+					continue
+				}
+
+				prices := make([]float64, len(rawKlines))
+				highs := make([]float64, len(rawKlines))
+				lows := make([]float64, len(rawKlines))
+				volumes := make([]float64, len(rawKlines))
+
+				for i, k := range rawKlines {
+					h, _ := parseValue(k[2])
+					l, _ := parseValue(k[3])
+					c, _ := parseValue(k[4])
+					v, _ := parseValue(k[5])
+					prices[i] = c
+					highs[i] = h
+					lows[i] = l
+					volumes[i] = v
+				}
+
+				ema20 := indicators.CalculateEMA(prices, 20)
+				ema50 := indicators.CalculateEMA(prices, 50)
+				rsi := indicators.CalculateRSI(prices, 14)
+				atr := indicators.CalculateATR(highs, lows, prices, 14)
+				bb := indicators.CalculateBollingerBands(prices, 20, 2.0)
+				pivotsLow := indicators.FindPivotLows(lows, 5, 2)
+
+				features := ExtractFeatures(
+					prices, highs, lows, volumes,
+					tickerMap[symbol],
+					ema50, make([]float64, len(prices)), rsi,
+					bb, atr, pivotsLow,
+					funding, 0,
+				)
+
+				if features == nil {
+					continue
+				}
+
+				// Calculate trend strength score
+				trendScore := CalculateFollowTrendScore(prices, volumes, ema20, ema50, rsi, features)
+
+				followTrendTFScores = append(followTrendTFScores, domain.TimeframeScore{
+					TF:    tf,
+					Score: trendScore,
+					RSI:   features.RSI,
+				})
+				followTrendFeaturesMap[tf] = features
+			}
+
+			// Evaluate Follow Trend Setup
+			if len(followTrendTFScores) >= 2 {
+				var trendTotalScore float64
+				var trendPrimaryFeatures *domain.MarketFeatures
+				
+				// Check EMA alignment consistency across timeframes
+				emaAlignedLong := 0
+				emaAlignedShort := 0
+				hasStrongVolume := 0
+				
+				for _, tf := range trendTimeframes {
+					feat, ok := followTrendFeaturesMap[tf]
+					if !ok {
+						continue
+					}
+					
+					// LONG trend: Price > EMA20 > EMA50, RSI > 50
+					if feat.OverExtEma > 0 && feat.RSI > 50 && feat.RSI < 80 {
+						emaAlignedLong++
+					}
+					
+					// SHORT trend: Price < EMA20 < EMA50, RSI < 50
+					if feat.OverExtEma < 0 && feat.RSI < 50 && feat.RSI > 20 {
+						emaAlignedShort++
+					}
+					
+					// Volume confirmation
+					if feat.VolumeDeclineRatio < -0.2 {
+						hasStrongVolume++
+					}
+					
+					if trendPrimaryFeatures == nil {
+						trendPrimaryFeatures = feat
+					}
+				}
+				
+				// Calculate average score
+				for _, ts := range followTrendTFScores {
+					trendTotalScore += ts.Score
+				}
+				trendAvgScore := trendTotalScore / float64(len(followTrendTFScores))
+				
+				// Determine direction and apply multipliers
+				var trendDirection string
+				var trendMultiplier float64 = 1.0
+				
+				if emaAlignedLong >= 2 {
+					trendDirection = "LONG"
+					trendMultiplier = 1.3
+					if hasStrongVolume >= 2 {
+						trendMultiplier = 1.5
+					}
+				} else if emaAlignedShort >= 2 {
+					trendDirection = "SHORT"
+					trendMultiplier = 1.3
+					if hasStrongVolume >= 2 {
+						trendMultiplier = 1.5
+					}
+				} else if emaAlignedLong >= 1 || emaAlignedShort >= 1 {
+					// Partial alignment
+					if emaAlignedLong > emaAlignedShort {
+						trendDirection = "LONG"
+					} else {
+						trendDirection = "SHORT"
+					}
+					trendMultiplier = 1.1
+				}
+				
+				coin.FollowTrendScore = trendAvgScore * trendMultiplier
+				if coin.FollowTrendScore > 100 {
+					coin.FollowTrendScore = 100
+				}
+				coin.FollowTrendTFScores = followTrendTFScores
+				coin.FollowTrendFeatures = trendPrimaryFeatures
+				coin.FollowTrendDirection = trendDirection
+				
+				// Set status based on trend strength
+				if trendDirection != "" && coin.FollowTrendScore >= 60 {
+					if hasStrongVolume >= 2 && (emaAlignedLong >= 2 || emaAlignedShort >= 2) {
+						coin.FollowTrendStatus = "HOT" // Strong trend with volume
+					} else if emaAlignedLong >= 2 || emaAlignedShort >= 2 {
+						coin.FollowTrendStatus = "STRONG" // Strong trend
+					} else {
+						coin.FollowTrendStatus = "MODERATE" // Moderate trend
+					}
+				}
+			}
+
 			// Determine Status based on 1m + 5m confluence
 			// TRIGGER: both 1m and 5m aligned (confluence = 2) - ready for entry!
 			// SETUP: 1 TF aligned with decent score - preparing

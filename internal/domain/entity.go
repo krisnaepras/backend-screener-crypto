@@ -72,4 +72,10 @@ type CoinData struct {
 	BreakoutScore      float64             `json:"breakoutScore"`
 	BreakoutTFScores   []TimeframeScore    `json:"breakoutTfScores,omitempty"`
 	BreakoutFeatures   *MarketFeatures     `json:"breakoutFeatures,omitempty"`
+	// Follow Trend - Ikuti trend yang sedang kuat (LONG atau SHORT)
+	FollowTrendStatus    string              `json:"followTrendStatus,omitempty"` // "HOT", "STRONG", "MODERATE"
+	FollowTrendDirection string              `json:"followTrendDirection,omitempty"` // "LONG", "SHORT", ""
+	FollowTrendScore     float64             `json:"followTrendScore"`
+	FollowTrendTFScores  []TimeframeScore    `json:"followTrendTfScores,omitempty"`
+	FollowTrendFeatures  *MarketFeatures     `json:"followTrendFeatures,omitempty"`
 }
